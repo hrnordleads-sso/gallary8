@@ -42,9 +42,9 @@ export function createBrainCloud(count: number): BrainBuffers {
     const theta = u * Math.PI * 2;
     const phi = Math.acos(2 * v - 1);
 
-    let rx = 0.72;
-    let ry = 0.58;
-    let rz = 0.9;
+    const rx = 0.72;
+    const ry = 0.58;
+    const rz = 0.9;
 
     let x = rx * Math.sin(phi) * Math.cos(theta);
     let y = ry * Math.cos(phi);
