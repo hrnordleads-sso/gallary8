@@ -4,6 +4,7 @@ export type BrainBuffers = {
   positions: Float32Array;
   colors: Float32Array;
   seeds: Float32Array;
+  sizes: Float32Array;
   count: number;
 };
 
@@ -12,117 +13,122 @@ function hash(n: number): number {
   return x - Math.floor(x);
 }
 
-function noise3(x: number, y: number, z: number): number {
-  const n =
-    hash(x * 1.7 + y * 2.3 + z * 3.1) * 0.55 +
-    hash(x * 4.1 + y * 5.7 + z * 6.9) * 0.3 +
-    hash(x * 9.2 + y * 11.4 + z * 13.8) * 0.15;
-  return n * 2 - 1;
+/** Fast anatomical warp: unit sphere → cerebrum silhouette. */
+function warpToBrain(u: number, v: number, w: number, layer: number): THREE.Vector3 {
+  // u,v,w in [-1,1] roughly on/near unit ball
+  const hemisphere = u < 0 ? -1 : 1;
+  let x = Math.abs(u) * 0.55 + 0.1;
+  let y = v * 0.42;
+  let z = w * 0.62;
+
+  // Frontal / occipital elongation
+  z *= 1.05 + 0.18 * z;
+  // Temporal drop
+  if (Math.abs(u) > 0.35 && y < 0.05) {
+    y -= 0.18 * (Math.abs(u) - 0.35);
+    x += 0.08;
+  }
+  // Cerebellum pocket
+  if (z < -0.35 && y < 0.1) {
+    y -= 0.22;
+    z = z * 0.85 - 0.08;
+    x *= 0.9;
+  }
+  // Midline fissure
+  x = Math.max(0.035, x);
+  x *= hemisphere;
+
+  // Cortical folds
+  const folds =
+    1 +
+    0.1 * Math.sin(x * 15 + z * 10) +
+    0.08 * Math.sin(y * 17 + x * 8) +
+    0.05 * Math.sin(z * 13 + y * 11) +
+    0.04 * (hash(x * 4 + y * 7 + z * 3) * 2 - 1);
+  x *= folds;
+  y *= folds * 0.97;
+  z *= folds * 1.01;
+
+  // Interior layer shrinks toward center
+  if (layer > 0.5) {
+    const s = 0.55 + hash(u * 9 + v * 5) * 0.25;
+    x *= s;
+    y *= s;
+    z *= s;
+  }
+
+  return new THREE.Vector3(x, y + 0.04, z);
 }
 
-/** Procedural cerebrum point cloud with left/right hemispheres and cortical folds. */
+/** Dense luminous brain — surface shell + soft interior nebula. */
 export function createBrainCloud(count: number): BrainBuffers {
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
   const seeds = new Float32Array(count * 4);
+  const sizes = new Float32Array(count);
 
-  const colorCool = new THREE.Color("#7dd3fc");
-  const colorHot = new THREE.Color("#38bdf8");
-  const colorCore = new THREE.Color("#e0f2fe");
+  const cyan = new THREE.Color("#5ee7ff");
+  const electric = new THREE.Color("#22d3ee");
+  const ice = new THREE.Color("#e0fdff");
+  const deep = new THREE.Color("#0284c7");
 
-  let written = 0;
-  let guard = 0;
+  for (let i = 0; i < count; i += 1) {
+    const layer = i / count < 0.78 ? 0 : 1;
+    // Fibonacci-ish sphere distribution
+    const t = (i + 0.5) / count;
+    const incl = Math.acos(1 - 2 * ((t * 1.618) % 1));
+    const azim = 2 * Math.PI * 0.61803398875 * i;
+    let r = layer === 0 ? 0.92 + hash(i * 1.7) * 0.1 : 0.25 + hash(i * 3.1) * 0.55;
+    // Jitter
+    r += (hash(i * 5.3) - 0.5) * 0.06;
 
-  while (written < count && guard < count * 8) {
-    guard += 1;
+    const sx = r * Math.sin(incl) * Math.cos(azim);
+    const sy = r * Math.cos(incl);
+    const sz = r * Math.sin(incl) * Math.sin(azim);
 
-    const hemisphere = written % 2 === 0 ? -1 : 1;
-    const u = Math.random();
-    const v = Math.random();
-    const theta = u * Math.PI * 2;
-    const phi = Math.acos(2 * v - 1);
+    const p = warpToBrain(sx, sy, sz, layer);
+    const idx = i * 3;
+    positions[idx] = p.x;
+    positions[idx + 1] = p.y;
+    positions[idx + 2] = p.z;
 
-    const rx = 0.72;
-    const ry = 0.58;
-    const rz = 0.9;
-
-    let x = rx * Math.sin(phi) * Math.cos(theta);
-    let y = ry * Math.cos(phi);
-    let z = rz * Math.sin(phi) * Math.sin(theta);
-
-    // Split hemispheres + slight frontal/occipital elongation
-    x = Math.abs(x) * hemisphere + hemisphere * 0.08;
-    z *= 1.05;
-    y += 0.05;
-
-    // Cortical folds
-    const fold =
-      1 +
-      0.12 * Math.sin(x * 14 + z * 9) +
-      0.08 * Math.sin(y * 18 + x * 7) +
-      0.06 * noise3(x * 3.2, y * 3.2, z * 3.2);
-    x *= fold;
-    y *= fold * 0.98;
-    z *= fold * 1.02;
-
-    // Soft cerebellum hint under the rear
-    if (z < -0.35 && y < 0.05) {
-      const cScale = 0.55 + 0.2 * Math.random();
-      x *= cScale;
-      y = y * 0.7 - 0.18;
-      z = z * 0.75 - 0.12;
+    const height = THREE.MathUtils.clamp((p.y + 0.55) / 1.1, 0, 1);
+    const mix = cyan
+      .clone()
+      .lerp(electric, 0.4 + height * 0.3)
+      .lerp(ice, height * 0.4)
+      .lerp(deep, (1 - height) * 0.22);
+    if (layer === 1) {
+      mix.multiplyScalar(0.5);
+      mix.lerp(deep, 0.4);
     }
 
-    // Reject overly sparse outliers
-    const dist = Math.sqrt(x * x + y * y + z * z);
-    if (dist < 0.28 || dist > 1.35) continue;
+    colors[idx] = mix.r;
+    colors[idx + 1] = mix.g;
+    colors[idx + 2] = mix.b;
 
-    const i = written * 3;
-    positions[i] = x;
-    positions[i + 1] = y;
-    positions[i + 2] = z;
-
-    const depth = THREE.MathUtils.clamp((y + 0.6) / 1.2, 0, 1);
-    const mix = colorCool.clone().lerp(colorHot, depth * 0.65).lerp(colorCore, depth * 0.2);
-    colors[i] = mix.r;
-    colors[i + 1] = mix.g;
-    colors[i + 2] = mix.b;
-
-    const s = written * 4;
-    seeds[s] = Math.random();
-    seeds[s + 1] = Math.random();
-    seeds[s + 2] = Math.random();
-    seeds[s + 3] = 0.6 + Math.random() * 0.8;
-
-    written += 1;
+    const s = i * 4;
+    seeds[s] = hash(i * 1.1);
+    seeds[s + 1] = hash(i * 2.3);
+    seeds[s + 2] = hash(i * 3.7);
+    seeds[s + 3] = layer;
+    sizes[i] = layer === 0 ? 1.2 + hash(i * 4.1) * 1.5 : 2.4 + hash(i * 6.2) * 2.6;
   }
 
-  return {
-    positions: positions.subarray(0, written * 3),
-    colors: colors.subarray(0, written * 3),
-    seeds: seeds.subarray(0, written * 4),
-    count: written,
-  };
+  return { positions, colors, seeds, sizes, count };
 }
 
-export function chapterFromProgress(progress: number, chapterCount: number): number {
-  return Math.min(
-    chapterCount - 1,
-    Math.max(0, Math.floor(progress * chapterCount + 1e-6))
-  );
-}
-
-/** Camera keyframes keyed to scroll progress 0→1 across seven chapters. */
+/** Camera: brain sits right-of-center like the reference. */
 export function sampleCamera(progress: number) {
   const keys = [
-    { p: 0.0, pos: new THREE.Vector3(0.15, 0.05, 3.6), look: new THREE.Vector3(0.35, 0.05, 0) },
-    { p: 0.14, pos: new THREE.Vector3(0.4, 0.2, 2.8), look: new THREE.Vector3(0.2, 0.05, 0) },
-    { p: 0.28, pos: new THREE.Vector3(-0.2, 0.35, 2.2), look: new THREE.Vector3(0.1, 0.05, 0) },
-    { p: 0.42, pos: new THREE.Vector3(0.9, 0.15, 1.7), look: new THREE.Vector3(0.15, 0.0, 0) },
-    { p: 0.56, pos: new THREE.Vector3(0.1, 0.05, 1.15), look: new THREE.Vector3(0.05, 0.02, 0) },
-    { p: 0.72, pos: new THREE.Vector3(-0.6, 0.4, 2.4), look: new THREE.Vector3(0, 0.1, 0) },
-    { p: 0.88, pos: new THREE.Vector3(0.0, 0.2, 4.2), look: new THREE.Vector3(0, 0, 0) },
-    { p: 1.0, pos: new THREE.Vector3(0.0, 0.0, 5.2), look: new THREE.Vector3(0, 0, 0) },
+    { p: 0.0, pos: new THREE.Vector3(-0.35, 0.12, 3.15), look: new THREE.Vector3(0.55, 0.05, 0) },
+    { p: 0.14, pos: new THREE.Vector3(-0.1, 0.2, 2.55), look: new THREE.Vector3(0.4, 0.05, 0) },
+    { p: 0.28, pos: new THREE.Vector3(0.55, 0.25, 2.0), look: new THREE.Vector3(0.2, 0.0, 0) },
+    { p: 0.42, pos: new THREE.Vector3(1.05, 0.05, 1.55), look: new THREE.Vector3(0.15, -0.05, 0) },
+    { p: 0.56, pos: new THREE.Vector3(0.2, -0.15, 1.25), look: new THREE.Vector3(0.05, -0.2, -0.15) },
+    { p: 0.72, pos: new THREE.Vector3(-0.4, 0.35, 2.65), look: new THREE.Vector3(0.1, 0.05, 0) },
+    { p: 0.88, pos: new THREE.Vector3(0.0, 0.15, 4.0), look: new THREE.Vector3(0, 0, 0) },
+    { p: 1.0, pos: new THREE.Vector3(0.0, 0.05, 5.0), look: new THREE.Vector3(0, 0, 0) },
   ];
 
   let i = 0;
@@ -139,11 +145,12 @@ export function sampleCamera(progress: number) {
 }
 
 export function sampleBrainMotion(progress: number) {
-  const rotateY = progress * Math.PI * 1.35;
-  const rotateX = Math.sin(progress * Math.PI) * 0.18;
-  const scale = THREE.MathUtils.lerp(1, 1.08, Math.sin(progress * Math.PI));
-  const scatter = THREE.MathUtils.smoothstep((progress - 0.62) / 0.28, 0, 1);
-  const scan = THREE.MathUtils.clamp((progress - 0.2) / 0.35, 0, 1);
-  const glow = 0.75 + Math.sin(progress * Math.PI * 2) * 0.15 + scatter * 0.35;
-  return { rotateY, rotateX, scale, scatter, scan, glow };
+  const rotateY = -0.35 + progress * Math.PI * 1.15;
+  const rotateX = 0.08 + Math.sin(progress * Math.PI) * 0.2;
+  const scale = THREE.MathUtils.lerp(1.05, 1.18, Math.sin(progress * Math.PI * 0.85));
+  const scatter = THREE.MathUtils.smoothstep((progress - 0.68) / 0.26, 0, 1);
+  const scan = THREE.MathUtils.clamp((progress - 0.18) / 0.4, 0, 1);
+  const glow = 1.15 + Math.sin(progress * Math.PI * 2) * 0.2 + scatter * 0.55;
+  const highlight = THREE.MathUtils.smoothstep((progress - 0.35) / 0.2, 0, 1);
+  return { rotateY, rotateX, scale, scatter, scan, glow, highlight };
 }

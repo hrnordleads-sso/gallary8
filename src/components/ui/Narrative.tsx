@@ -25,7 +25,7 @@ export function Narrative() {
   return (
     <div className="pointer-events-none fixed inset-0 z-20 flex items-center">
       <div
-        className={`narrative-panel mx-auto w-full max-w-xl px-6 transition-all duration-700 sm:mx-0 sm:ml-[6%] sm:max-w-lg md:ml-[8%] lg:max-w-xl ${
+        className={`narrative-panel mx-auto w-full max-w-xl px-6 transition-all duration-700 sm:mx-0 sm:ml-[5%] sm:max-w-md md:ml-[6%] lg:max-w-lg ${
           visible ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
         }`}
       >

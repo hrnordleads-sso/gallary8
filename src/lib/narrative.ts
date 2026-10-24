@@ -8,7 +8,7 @@ export type Chapter = {
   specimen: string;
 };
 
-/** Scroll chapters — original copy inspired by the Neural Monitor cinematic structure. */
+/** Scroll chapters aligned to the Neural Monitor reference storytelling beats. */
 export const CHAPTERS: Chapter[] = [
   {
     id: "arrival",
@@ -20,22 +20,22 @@ export const CHAPTERS: Chapter[] = [
     specimen: "HUMAN · CEREBRUM",
   },
   {
-    id: "surface",
+    id: "signals",
     index: "02",
-    eyebrow: "> SURFACE _",
-    title: "Folds of light.\nA living topography.",
-    body: "Gyri and sulci bloom as density rises. Each ridge is a corridor of signal; each valley a hush between firings—geometry that learns as you look.",
-    status: "SURFACE_LOCK",
-    specimen: "CORTEX · OUTER SHELL",
+    eyebrow: "> SIGNALS _",
+    title: "Everything you are,\ntravelling as electricity.",
+    body: "Pulses cascade across the cortex. What looks like stillness is traffic—millions of firings negotiating meaning in the dark.",
+    status: "THROUGHPUT",
+    specimen: "SYNAPTIC STREAM",
   },
   {
-    id: "scan",
+    id: "links",
     index: "03",
-    eyebrow: "> SCAN _",
-    title: "Region by region,\nthe field comes online.",
-    body: "A luminous plane drifts through the mass. Frontal, parietal, temporal, occipital—each lobe answers with a brighter constellation of points.",
+    eyebrow: "> LINKS _",
+    title: "No neuron\nthinks alone.",
+    body: "Trillions of connections wire the regions into one system. The scan isolates the temporal flank and watches it bind to the rest—meaning lives in the links, not the nodes.",
     status: "REGION_PASS",
-    specimen: "MULTI-LOBE SWEEP",
+    specimen: "TEMPORAL · ASSOC",
   },
   {
     id: "firing",
@@ -47,19 +47,19 @@ export const CHAPTERS: Chapter[] = [
     specimen: "SYNAPTIC BURST",
   },
   {
-    id: "coherence",
+    id: "balance",
     index: "05",
-    eyebrow: "> COHERENCE _",
-    title: "Zoom until the\npattern holds.",
-    body: "The camera settles into a close study. Noise falls away; coherence climbs. What remains is structure—precise, fragile, and unmistakably alive.",
+    eyebrow: "> BALANCE _",
+    title: "The quiet half\nthat keeps you upright.",
+    body: "Focus drops into the cerebellum. Coordination without commentary—the ballast under every thought you notice.",
     status: "FOCUS_LOCK",
-    specimen: "DEEP STRUCTURE",
+    specimen: "CEREBELLUM",
   },
   {
     id: "release",
     index: "06",
     eyebrow: "> RELEASE _",
-    title: "The specimen lets go.",
+    title: "The specimen\nlets go.",
     body: "Bonds loosen. Points drift from the form they once defended, carrying memory into open space—still glowing, no longer bound.",
     status: "DISPERSAL",
     specimen: "FIELD UNBINDING",

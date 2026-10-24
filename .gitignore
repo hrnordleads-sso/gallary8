@@ -16,6 +16,8 @@
 # next.js
 /.next/
 /out/
+/ref-frames/
+/deploy/
 
 # production
 /build

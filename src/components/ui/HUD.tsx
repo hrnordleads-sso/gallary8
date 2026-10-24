@@ -27,7 +27,9 @@ export function HUD() {
         <span className="hidden shrink-0 md:inline">{HUD_METRICS.particles}</span>
         <span className="shrink-0">FIRING: {firing.toFixed(2)} M/S</span>
         <span className="shrink-0">COHERENCE: {coherence.toFixed(1)}%</span>
-        <span className="ml-auto hidden shrink-0 lg:inline">{HUD_METRICS.focus}</span>
+        <span className="ml-auto hidden shrink-0 lg:inline">
+          FOCUS: {current.specimen.replace(" · ", "_").replace("·", "_")}
+        </span>
         <Waveform />
       </header>
 
