@@ -63,11 +63,11 @@ const fragmentShader = /* glsl */ `
     float core = smoothstep(0.2, 0.0, d);
     float halo = smoothstep(0.5, 0.18, d);
 
-    vec3 col = vColor * (1.35 + uGlow * 1.1);
-    col += vec3(0.75, 0.98, 1.0) * core * (1.45 - vLayer * 0.3);
-    col += vColor * halo * 0.55 * (0.7 + vLayer);
+    vec3 col = vColor * (1.05 + uGlow * 0.55);
+    col += vec3(0.7, 0.95, 1.0) * core * (0.95 - vLayer * 0.25);
+    col += vColor * halo * 0.35 * (0.55 + vLayer);
 
-    float alpha = soft * vAlpha * (1.05 + uGlow * 0.4);
+    float alpha = soft * vAlpha * (0.95 + uGlow * 0.25);
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -161,27 +161,6 @@ export function BrainCloud({ particleCount = 140000 }: Props) {
 
   return (
     <group ref={group} position={[0.62, 0.04, 0]} scale={1.22}>
-      {/* Soft volumetric core glow */}
-      <mesh>
-        <sphereGeometry args={[0.55, 32, 32]} />
-        <meshBasicMaterial
-          color="#0891b2"
-          transparent
-          opacity={0.12}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-      <mesh>
-        <sphereGeometry args={[0.95, 32, 32]} />
-        <meshBasicMaterial
-          color="#22d3ee"
-          transparent
-          opacity={0.045}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
       <points geometry={geometry} frustumCulled={false}>
         <shaderMaterial
           vertexShader={vertexShader}

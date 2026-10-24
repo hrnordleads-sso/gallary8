@@ -41,7 +41,7 @@ export function Experience() {
           alpha: false,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.35,
+          toneMappingExposure: 1.1,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
         camera={{ position: [-0.35, 0.12, 3.15], fov: 40, near: 0.1, far: 60 }}
