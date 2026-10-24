@@ -39,12 +39,12 @@ const vertexShader = /* glsl */ `
     mixed += dir * region * uHighlight * 0.04;
 
     vec4 mvPosition = modelViewMatrix * vec4(mixed, 1.0);
-    float size = aSize * (2.8 + aSeed * 2.2) * (1.0 + uGlow * 0.55) * twinkle;
-    size *= (1.0 + aLayer * 0.85);
-    size *= (340.0 / max(0.5, -mvPosition.z));
-    gl_PointSize = clamp(size, 1.2, 42.0);
+    float size = aSize * (3.6 + aSeed * 2.8) * (1.0 + uGlow * 0.7) * twinkle;
+    size *= (1.0 + aLayer * 1.1);
+    size *= (380.0 / max(0.5, -mvPosition.z));
+    gl_PointSize = clamp(size, 1.6, 52.0);
     gl_Position = projectionMatrix * mvPosition;
-    vAlpha = mix(0.72, 1.0, aSeed) * twinkle * mix(1.0, 0.42, aLayer);
+    vAlpha = mix(0.85, 1.0, aSeed) * twinkle * mix(1.0, 0.55, aLayer);
   }
 `;
 
@@ -63,11 +63,11 @@ const fragmentShader = /* glsl */ `
     float core = smoothstep(0.2, 0.0, d);
     float halo = smoothstep(0.5, 0.18, d);
 
-    vec3 col = vColor * (0.95 + uGlow * 0.85);
-    col += vec3(0.65, 0.95, 1.0) * core * (1.15 - vLayer * 0.35);
-    col += vColor * halo * 0.35 * (0.55 + vLayer);
+    vec3 col = vColor * (1.35 + uGlow * 1.1);
+    col += vec3(0.75, 0.98, 1.0) * core * (1.45 - vLayer * 0.3);
+    col += vColor * halo * 0.55 * (0.7 + vLayer);
 
-    float alpha = soft * vAlpha * (0.95 + uGlow * 0.35);
+    float alpha = soft * vAlpha * (1.05 + uGlow * 0.4);
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -160,7 +160,7 @@ export function BrainCloud({ particleCount = 140000 }: Props) {
   });
 
   return (
-    <group ref={group} position={[0.55, 0.02, 0]} scale={1.08}>
+    <group ref={group} position={[0.62, 0.04, 0]} scale={1.22}>
       {/* Soft volumetric core glow */}
       <mesh>
         <sphereGeometry args={[0.55, 32, 32]} />

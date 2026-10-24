@@ -37,11 +37,21 @@ header span {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
+.brain-glow {
+  background: radial-gradient(
+    ellipse at 62% 48%,
+    rgba(34, 211, 238, 0.14) 0%,
+    rgba(14, 165, 233, 0.06) 28%,
+    transparent 58%
+  );
+  mix-blend-mode: screen;
+}
+
 .vignette {
   background:
-    radial-gradient(ellipse at 62% 48%, transparent 22%, rgba(1, 8, 20, 0.28) 58%, rgba(0, 4, 12, 0.78) 100%),
-    linear-gradient(to top, rgba(1, 8, 20, 0.55), transparent 30%),
-    linear-gradient(to bottom, rgba(1, 8, 20, 0.38), transparent 24%);
+    radial-gradient(ellipse at 62% 48%, transparent 26%, rgba(1, 8, 20, 0.22) 62%, rgba(0, 4, 12, 0.7) 100%),
+    linear-gradient(to top, rgba(1, 8, 20, 0.5), transparent 30%),
+    linear-gradient(to bottom, rgba(1, 8, 20, 0.32), transparent 24%);
 }
 
 .wave-bar {
