@@ -67,10 +67,10 @@ export function createBrainCloud(count: number): BrainBuffers {
   const seeds = new Float32Array(count * 4);
   const sizes = new Float32Array(count);
 
-  const cyan = new THREE.Color("#5ee7ff");
+  const cyan = new THREE.Color("#38bdf8");
   const electric = new THREE.Color("#22d3ee");
-  const ice = new THREE.Color("#e0fdff");
-  const deep = new THREE.Color("#0284c7");
+  const ice = new THREE.Color("#7dd3fc");
+  const deep = new THREE.Color("#0369a1");
 
   for (let i = 0; i < count; i += 1) {
     const layer = i / count < 0.78 ? 0 : 1;
@@ -95,12 +95,12 @@ export function createBrainCloud(count: number): BrainBuffers {
     const height = THREE.MathUtils.clamp((p.y + 0.55) / 1.1, 0, 1);
     const mix = cyan
       .clone()
-      .lerp(electric, 0.4 + height * 0.3)
-      .lerp(ice, height * 0.4)
-      .lerp(deep, (1 - height) * 0.22);
+      .lerp(electric, 0.35 + height * 0.25)
+      .lerp(ice, height * 0.18)
+      .lerp(deep, (1 - height) * 0.35);
     if (layer === 1) {
-      mix.multiplyScalar(0.5);
-      mix.lerp(deep, 0.4);
+      mix.multiplyScalar(0.42);
+      mix.lerp(deep, 0.5);
     }
 
     colors[idx] = mix.r;
