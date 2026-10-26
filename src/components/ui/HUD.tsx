@@ -4,70 +4,80 @@ import { useEffect, useState } from "react";
 import { CHAPTERS, HUD_METRICS } from "@/lib/narrative";
 import { subscribeScroll } from "@/lib/scrollStore";
 
+/** Global HUD chrome — thin floating telemetry matching Neural Monitor video. */
 export function HUD() {
   const [chapter, setChapter] = useState(0);
-  const [coherence, setCoherence] = useState(92.5);
-  const [firing, setFiring] = useState(4.67);
+  const [coherence, setCoherence] = useState(95.2);
+  const [firing, setFiring] = useState(4.21);
 
   useEffect(() => {
     return subscribeScroll((state) => {
       setChapter(state.chapter);
-      setCoherence(88 + state.progress * 8 + Math.sin(state.progress * 12) * 1.2);
-      setFiring(3.2 + state.progress * 3.8 + Math.sin(state.progress * 20) * 0.4);
+      const current = CHAPTERS[state.chapter] ?? CHAPTERS[0];
+      // Balance chapter holds near-perfect coherence (ref frames ~99%)
+      const base =
+        current.id === "balance"
+          ? 98.4 + Math.sin(state.progress * 8) * 0.4
+          : current.id === "release"
+            ? 99.1 + Math.sin(state.progress * 6) * 0.25
+            : 88 + state.progress * 10 + Math.sin(state.progress * 12) * 1.1;
+      setCoherence(base);
+      setFiring(3.4 + state.progress * 2.8 + Math.sin(state.progress * 18) * 0.35);
     });
   }, []);
 
   const current = CHAPTERS[chapter] ?? CHAPTERS[0];
+  const focus = current.specimen.replace(/\s*·\s*/g, "_").replace(/\s+/g, "_");
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-30 text-[10px] tracking-[0.18em] text-sky-100/75 sm:text-[11px]">
-      <header className="absolute left-0 right-0 top-0 flex items-center gap-3 overflow-x-auto border-b border-white/10 bg-[#020617]/55 px-3 py-2 backdrop-blur-md sm:gap-5 sm:px-5">
-        <span className="shrink-0 font-medium text-cyan-200">{HUD_METRICS.brand}</span>
+    <div className="hud-root pointer-events-none fixed inset-0 z-30 text-[9px] uppercase tracking-[0.22em] text-[#c8e7f5]/75 sm:text-[10px]">
+      <header className="absolute left-0 right-0 top-0 flex flex-wrap items-center gap-x-2 gap-y-1 overflow-hidden px-3 py-3 sm:gap-x-4 sm:px-5">
+        <span className="shrink-0 text-[#67e8f9]/95">{HUD_METRICS.brand}</span>
+        <Dot className="hidden min-[400px]:inline" />
         <span className="hidden shrink-0 sm:inline">{HUD_METRICS.neurons}</span>
+        <Dot className="hidden sm:inline" />
         <span className="hidden shrink-0 md:inline">{HUD_METRICS.particles}</span>
-        <span className="shrink-0">FIRING: {firing.toFixed(2)} M/S</span>
-        <span className="shrink-0">COHERENCE: {coherence.toFixed(1)}%</span>
-        <span className="ml-auto hidden shrink-0 lg:inline">
-          FOCUS: {current.specimen.replace(" · ", "_").replace("·", "_")}
+        <Dot className="hidden md:inline" />
+        <span className="hidden shrink-0 min-[400px]:inline">
+          FIRING: {firing.toFixed(2)} M/S
         </span>
+        <Dot className="hidden min-[400px]:inline" />
+        <span className="shrink-0">COHERENCE: {coherence.toFixed(1)}%</span>
+        <span className="ml-auto hidden shrink-0 lg:inline">FOCUS: {focus}</span>
         <Waveform />
       </header>
 
-      <div className="absolute bottom-16 left-3 right-3 flex flex-wrap items-end justify-between gap-3 sm:bottom-14 sm:left-5 sm:right-5">
-        <div className="space-y-1 font-mono uppercase">
+      <div className="absolute bottom-10 left-3 right-3 flex flex-wrap items-end justify-between gap-3 sm:bottom-8 sm:left-5 sm:right-5">
+        <div className="space-y-1 text-[#c8e7f5]/70">
           <p>+ SPECIMEN: {current.specimen}</p>
           <p>+ STATUS: {current.status}</p>
         </div>
-        <div className="flex items-center gap-2 font-mono">
+        <div className="flex items-center gap-2.5">
           {CHAPTERS.map((item, index) => (
             <span
               key={item.id}
-              className={
-                index === chapter
-                  ? "text-cyan-200"
-                  : "text-white/30"
-              }
+              className={index === chapter ? "text-[#67e8f9]" : "text-white/20"}
             >
               {item.index}
             </span>
           ))}
         </div>
       </div>
-
-      <div className="absolute bottom-4 left-4 flex h-9 w-9 items-center justify-center rounded-full border border-cyan-300/40 bg-cyan-400/10 text-sm font-semibold text-cyan-100">
-        N
-      </div>
     </div>
   );
 }
 
+function Dot({ className = "" }: { className?: string }) {
+  return <span className={`shrink-0 text-white/20 ${className}`} aria-hidden>·</span>;
+}
+
 function Waveform() {
   return (
-    <div className="ml-1 hidden h-4 items-end gap-[2px] sm:flex" aria-hidden>
-      {Array.from({ length: 18 }).map((_, i) => (
+    <div className="ml-1 hidden h-3.5 items-end gap-[2px] sm:flex" aria-hidden>
+      {Array.from({ length: 16 }).map((_, i) => (
         <span
           key={i}
-          className="wave-bar w-[2px] rounded-full bg-cyan-300/80"
+          className="wave-bar w-[2px] rounded-full bg-[#67e8f9]/75"
           style={{ animationDelay: `${i * 0.07}s` }}
         />
       ))}

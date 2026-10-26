@@ -8,6 +8,7 @@ import { setReducedMotion, setScrollProgress } from "@/lib/scrollStore";
 
 gsap.registerPlugin(ScrollTrigger);
 
+/** Step 9 · smoother 7-chapter scrub with resize refresh. */
 export function ScrollController() {
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -19,7 +20,9 @@ export function ScrollController() {
       trigger: "#scroll-root",
       start: "top top",
       end: "bottom bottom",
-      scrub: 0.65,
+      // Silkier scrub; reduced-motion snaps almost 1:1
+      scrub: media.matches ? 0.15 : 0.85,
+      invalidateOnRefresh: true,
       onUpdate: (self) => {
         setScrollProgress(self.progress, CHAPTERS.length);
       },
@@ -27,7 +30,16 @@ export function ScrollController() {
 
     setScrollProgress(0, CHAPTERS.length);
 
+    const onResize = () => {
+      ScrollTrigger.refresh();
+    };
+    window.addEventListener("resize", onResize);
+    // Layout settle after fonts / first paint
+    const settle = window.setTimeout(() => ScrollTrigger.refresh(), 120);
+
     return () => {
+      window.clearTimeout(settle);
+      window.removeEventListener("resize", onResize);
       media.removeEventListener("change", applyMotion);
       trigger.kill();
     };

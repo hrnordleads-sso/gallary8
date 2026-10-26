@@ -17,7 +17,10 @@
 /.next/
 /out/
 /ref-frames/
+/ref-frames-dense/
+/preview-serve/
 /deploy/
+/assets/
 
 # production
 /build

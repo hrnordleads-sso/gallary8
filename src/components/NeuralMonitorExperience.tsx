@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { HUD } from "@/components/ui/HUD";
 import { Narrative } from "@/components/ui/Narrative";
+import { FieldCallouts } from "@/components/ui/FieldCallouts";
 import { ScrollController } from "@/components/ScrollController";
 
 const Experience = dynamic(
@@ -12,14 +13,15 @@ const Experience = dynamic(
 
 export function NeuralMonitorExperience() {
   return (
-    <main className="relative min-h-[700vh] bg-[#020617] text-white">
+    <main className="relative min-h-[700vh] bg-[var(--navy)] text-[var(--foreground)]">
       <Experience />
       <Narrative />
+      <FieldCallouts />
       <HUD />
       <ScrollController />
       <a
         href="#scroll-root"
-        className="absolute left-4 top-16 z-50 -translate-y-[200%] rounded bg-black px-3 py-2 text-sm text-white focus:translate-y-0"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-black focus:px-3 focus:py-2 focus:text-sm focus:text-white"
       >
         Skip to scroll narrative
       </a>

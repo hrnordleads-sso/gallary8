@@ -1,10 +1,15 @@
 @import "tailwindcss";
 
+/* Neural Monitor global palette — locked to reference video */
 :root {
-  --background: #020617;
-  --foreground: #e2e8f0;
-  --cyan: #67e8f9;
-  --navy: #020617;
+  --background: #010814;
+  --foreground: #e8eef7;
+  --cyan: #40e0d0;
+  --cyan-bright: #67e8f9;
+  --cyan-soft: #a5f3fc;
+  --navy: #010814;
+  --navy-mid: #0a1a38;
+  --navy-deep: #00040c;
 }
 
 @theme inline {
@@ -26,32 +31,48 @@ html {
 body {
   margin: 0;
   min-height: 100%;
-  background: radial-gradient(ellipse at 58% 42%, #0a2248 0%, #04102a 42%, #010814 72%, #00040c 100%);
+  /* Deep navy void — brain sits in the right-center glow pocket */
+  background: radial-gradient(
+    ellipse at 58% 42%,
+    #0c2748 0%,
+    #061830 32%,
+    #010814 68%,
+    #00040c 100%
+  );
   color: var(--foreground);
   font-family: var(--font-display), system-ui, sans-serif;
 }
 
 .font-mono,
 .narrative-panel .font-mono,
-header span {
+.hud-root,
+.hud-root span,
+.hud-root p {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
+/* Soft holographic wash behind the point-cloud (right-of-center) */
 .brain-glow {
   background: radial-gradient(
-    ellipse at 62% 48%,
-    rgba(34, 211, 238, 0.14) 0%,
-    rgba(14, 165, 233, 0.06) 28%,
-    transparent 58%
+    ellipse at 58% 46%,
+    rgba(64, 224, 208, 0.12) 0%,
+    rgba(34, 211, 238, 0.07) 24%,
+    rgba(14, 165, 233, 0.03) 46%,
+    transparent 68%
   );
   mix-blend-mode: screen;
 }
 
 .vignette {
   background:
-    radial-gradient(ellipse at 62% 48%, transparent 26%, rgba(1, 8, 20, 0.22) 62%, rgba(0, 4, 12, 0.7) 100%),
-    linear-gradient(to top, rgba(1, 8, 20, 0.5), transparent 30%),
-    linear-gradient(to bottom, rgba(1, 8, 20, 0.32), transparent 24%);
+    radial-gradient(
+      ellipse at 58% 46%,
+      transparent 28%,
+      rgba(1, 8, 20, 0.28) 64%,
+      rgba(0, 4, 12, 0.78) 100%
+    ),
+    linear-gradient(to top, rgba(1, 8, 20, 0.55), transparent 32%),
+    linear-gradient(to bottom, rgba(1, 8, 20, 0.28), transparent 22%);
 }
 
 .wave-bar {
@@ -63,12 +84,16 @@ header span {
   0%,
   100% {
     height: 25%;
-    opacity: 0.45;
+    opacity: 0.4;
   }
   50% {
     height: 100%;
     opacity: 1;
   }
+}
+
+.z-25 {
+  z-index: 25;
 }
 
 .sr-only {
@@ -85,13 +110,22 @@ header span {
 
 @media (max-width: 640px) {
   .narrative-panel {
-    margin-top: -8vh;
+    margin-top: 0;
   }
+}
+
+/* Step 9 · narrative panel ease (opacity driven inline; keep transform soft) */
+.narrative-panel {
+  will-change: opacity, transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .wave-bar {
     animation: none;
     height: 55%;
+  }
+
+  .narrative-panel {
+    transition: none !important;
   }
 }

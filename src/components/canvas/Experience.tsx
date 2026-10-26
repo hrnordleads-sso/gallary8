@@ -5,8 +5,10 @@ import { AdaptiveDpr, AdaptiveEvents, Preload } from "@react-three/drei";
 import { Suspense } from "react";
 import * as THREE from "three";
 import { BrainCloud } from "./BrainCloud";
+import { BrainAura } from "./BrainAura";
 import { Starfield } from "./Starfield";
 import { ScanBeam } from "./ScanBeam";
+import { SignalThreads } from "./SignalThreads";
 import { CameraRig } from "./CameraRig";
 import { PostFX } from "./PostFX";
 
@@ -14,13 +16,14 @@ function Scene() {
   return (
     <>
       <color attach="background" args={["#010814"]} />
-      <fog attach="fog" args={["#010814", 10, 32]} />
-      <ambientLight intensity={0.35} />
-      <pointLight position={[2.4, 1.8, 3.2]} intensity={3.2} color="#67e8f9" distance={14} />
-      <pointLight position={[-2.2, -0.6, 2.4]} intensity={1.2} color="#38bdf8" distance={12} />
-      <pointLight position={[0.6, 0.2, -1.5]} intensity={1.6} color="#22d3ee" distance={10} />
+      <fog attach="fog" args={["#010814", 15, 42]} />
+      <ambientLight intensity={0.16} />
+      <pointLight position={[2.4, 1.5, 3]} intensity={1.0} color="#67e8f9" distance={16} />
+      <pointLight position={[-1.8, -0.3, 2.2]} intensity={0.45} color="#40e0d0" distance={12} />
       <Starfield />
+      <BrainAura />
       <BrainCloud />
+      <SignalThreads />
       <ScanBeam />
       <CameraRig />
       <Suspense fallback={null}>
@@ -41,10 +44,10 @@ export function Experience() {
           alpha: false,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 0.95,
+          toneMappingExposure: 0.72,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
-        camera={{ position: [-0.35, 0.12, 3.15], fov: 40, near: 0.1, far: 60 }}
+        camera={{ position: [-0.72, 0.06, 3.35], fov: 38, near: 0.1, far: 60 }}
       >
         <Suspense fallback={null}>
           <Scene />

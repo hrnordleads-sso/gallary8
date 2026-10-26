@@ -6,6 +6,7 @@ import * as THREE from "three";
 import { sampleCamera } from "@/lib/brainGeometry";
 import { getScrollState } from "@/lib/scrollStore";
 
+/** Step 9 · silkier camera follow + lighter parallax late in the story. */
 export function CameraRig() {
   const { camera } = useThree();
   const look = useRef(new THREE.Vector3(0.35, 0.05, 0));
@@ -18,23 +19,25 @@ export function CameraRig() {
     pointer.current.x = THREE.MathUtils.damp(
       pointer.current.x,
       reducedMotion ? 0 : state.pointer.x,
-      3,
+      2.4,
       delta
     );
     pointer.current.y = THREE.MathUtils.damp(
       pointer.current.y,
       reducedMotion ? 0 : state.pointer.y,
-      3,
+      2.4,
       delta
     );
 
-    const parallax = 0.18 * (1 - progress * 0.35);
+    // Parallax eases off as we pull into constellation
+    const parallax = 0.16 * (1 - progress * 0.55);
     const target = cam.position.clone();
     target.x += pointer.current.x * parallax;
-    target.y += pointer.current.y * parallax * 0.6;
+    target.y += pointer.current.y * parallax * 0.55;
 
-    camera.position.lerp(target, 1 - Math.exp(-2.8 * delta));
-    look.current.lerp(cam.lookAt, 1 - Math.exp(-2.6 * delta));
+    const follow = reducedMotion ? 6 : 2.2;
+    camera.position.lerp(target, 1 - Math.exp(-follow * delta));
+    look.current.lerp(cam.lookAt, 1 - Math.exp(-(follow * 0.95) * delta));
     camera.lookAt(look.current);
   });
 
