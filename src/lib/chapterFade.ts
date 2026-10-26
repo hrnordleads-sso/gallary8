@@ -1,9 +1,12 @@
 import { CHAPTERS } from "@/lib/narrative";
 
+function smoothstep(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+}
+
 /**
- * Step 9 · chapter copy opacity.
- * Solid from chapter start (local=0) through most of the beat;
- * soft fade only in the last ~10% so the next title can land clean.
+ * P1 · chapter copy opacity — soft land, solid hold, tight exit so next title settles clean.
  * Release coda holds full opacity to the end.
  */
 export function chapterFadeOpacity(progress: number): number {
@@ -14,6 +17,9 @@ export function chapterFadeOpacity(progress: number): number {
   const id = CHAPTERS[chapter]?.id;
 
   if (id === "release") return 1;
-  if (local < 0.9) return 1;
-  return Math.max(0, 1 - (local - 0.9) / 0.1);
+
+  // Soft land (first ~5%), solid mid-beat, exit in last ~12%
+  if (local < 0.05) return smoothstep(local / 0.05);
+  if (local < 0.88) return 1;
+  return 1 - smoothstep((local - 0.88) / 0.12);
 }

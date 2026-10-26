@@ -3,6 +3,7 @@
 import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { starfieldScale } from "@/lib/deviceProfile";
 import { getScrollState } from "@/lib/scrollStore";
 
 const FAR = 5200;
@@ -13,8 +14,14 @@ export function Starfield() {
   const farRef = useRef<THREE.Points>(null);
   const nearRef = useRef<THREE.Points>(null);
 
-  const far = useMemo(() => scatter(FAR, 8, 36, 0.7), []);
-  const near = useMemo(() => scatter(NEAR, 4, 14, 0.55), []);
+  const far = useMemo(() => {
+    const s = starfieldScale();
+    return scatter(Math.floor(FAR * s), 8, 36, 0.7);
+  }, []);
+  const near = useMemo(() => {
+    const s = starfieldScale();
+    return scatter(Math.floor(NEAR * s), 4, 14, 0.55);
+  }, []);
 
   useFrame((_, delta) => {
     const { progress, reducedMotion } = getScrollState();

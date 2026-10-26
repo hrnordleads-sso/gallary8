@@ -8,8 +8,9 @@ import {
   sampleBrainMotion,
   type BrainBuffers,
 } from "@/lib/brainGeometry";
+import { brainKeepRatio } from "@/lib/deviceProfile";
 import { loadBrainPoints } from "@/lib/loadBrainPoints";
-import { getScrollState } from "@/lib/scrollStore";
+import { getScrollIdle, getScrollState } from "@/lib/scrollStore";
 
 const vertexShader = /* glsl */ `
   attribute float aSeed;
@@ -42,7 +43,8 @@ const vertexShader = /* glsl */ `
       0.14 * sin(uTime * (1.35 + aPhase * 1.7) + aSeed * 6.2831) +
       0.06 * sin(uTime * (2.8 + aSeed * 1.2) + aPhase * 9.0);
     vec3 dir = normalize(position + vec3(0.0008));
-    vec3 scattered = position + dir * (aSeed * 5.8 + aPhase * 2.8 + 1.2);
+    // P1 · wider Release constellation (living web, not a tight puff)
+    vec3 scattered = position + dir * (aSeed * 7.4 + aPhase * 3.6 + 1.6);
     vec3 mixed = mix(position, scattered, uScatter);
 
     mixed += dir * sin(uTime * 0.45 + aSeed * 9.0) * 0.012 * (1.0 - uScatter);
@@ -79,18 +81,18 @@ const vertexShader = /* glsl */ `
     vec4 mvPosition = modelViewMatrix * vec4(mixed, 1.0);
     // View-facing rim — denser silhouette like the Neural Monitor video
     vec3 viewN = normalize(-mvPosition.xyz);
-    vRim = pow(1.0 - abs(dot(normalize(mat3(modelViewMatrix) * dir), viewN)), 1.6);
+    vRim = pow(1.0 - abs(dot(normalize(mat3(modelViewMatrix) * dir), viewN)), 1.35);
 
-    // Smaller points so cortical folds stay readable (not a white cloud)
-    float size = aSize * (1.35 + aSeed * 0.65) * (1.0 + uGlow * 0.15) * twinkle;
-    size *= (1.0 + aLayer * 0.3 + vRim * 0.25 + vTemporal * 0.35 + vOccipital * 0.4 + vCerebellum * 0.5);
-    size *= (280.0 / max(0.5, -mvPosition.z));
-    gl_PointSize = clamp(size, 1.0, 8.0);
+    // P0 · smaller points = denser fold read (not a soft white cloud)
+    float size = aSize * (1.15 + aSeed * 0.5) * (1.0 + uGlow * 0.1) * twinkle;
+    size *= (1.0 + aLayer * 0.22 + vRim * 0.32 + vTemporal * 0.3 + vOccipital * 0.35 + vCerebellum * 0.42);
+    size *= (265.0 / max(0.5, -mvPosition.z));
+    gl_PointSize = clamp(size, 0.9, 6.2);
     gl_Position = projectionMatrix * mvPosition;
-    vAlpha = mix(0.48, 0.72, aSeed) * twinkle * mix(1.0, 0.22, aLayer);
-    vAlpha *= mix(1.0, 1.25, vTemporal);
-    vAlpha *= mix(1.0, 1.3, vOccipital);
-    vAlpha *= mix(1.0, 1.35, vCerebellum);
+    vAlpha = mix(0.52, 0.78, aSeed) * twinkle * mix(1.0, 0.18, aLayer);
+    vAlpha *= mix(1.0, 1.22, vTemporal);
+    vAlpha *= mix(1.0, 1.28, vOccipital);
+    vAlpha *= mix(1.0, 1.32, vCerebellum);
   }
 `;
 
@@ -109,21 +111,21 @@ const fragmentShader = /* glsl */ `
     float d = length(uv);
     if (d > 0.5) discard;
 
-    float soft = smoothstep(0.5, 0.1, d);
-    float core = smoothstep(0.18, 0.0, d);
+    float soft = smoothstep(0.5, 0.12, d);
+    float core = smoothstep(0.14, 0.0, d);
 
     // Soft electric cyan — rim lift, hard-cap so additive never washes white
-    vec3 col = vColor * (0.72 + uGlow * 0.18);
-    col += vColor * core * 0.14;
-    col += vec3(0.08, 0.55, 0.95) * vRim * 0.28;
-    col += vec3(0.15, 0.75, 1.0) * vTemporal * 0.35;
-    col += vec3(0.2, 0.7, 1.0) * vOccipital * 0.4;
-    col += vec3(0.25, 0.85, 1.0) * vCerebellum * 0.45;
-    col.r = min(col.r, 0.28);
-    col.g = min(col.g, 0.82);
+    vec3 col = vColor * (0.68 + uGlow * 0.14);
+    col += vColor * core * 0.1;
+    col += vec3(0.05, 0.58, 0.98) * vRim * 0.34;
+    col += vec3(0.12, 0.72, 1.0) * vTemporal * 0.32;
+    col += vec3(0.16, 0.68, 1.0) * vOccipital * 0.36;
+    col += vec3(0.2, 0.8, 1.0) * vCerebellum * 0.4;
+    col.r = min(col.r, 0.22);
+    col.g = min(col.g, 0.78);
     col.b = min(col.b, 1.0);
 
-    float alpha = soft * vAlpha * (0.65 + uGlow * 0.08 + vRim * 0.1 + vTemporal * 0.12 + vOccipital * 0.14 + vCerebellum * 0.16);
+    float alpha = soft * vAlpha * (0.7 + uGlow * 0.06 + vRim * 0.12 + vTemporal * 0.1 + vOccipital * 0.12 + vCerebellum * 0.14);
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -166,24 +168,39 @@ function thinBuffers(data: BrainBuffers, ratio: number): BrainBuffers {
     colors[i * 3] = data.colors[src * 3];
     colors[i * 3 + 1] = data.colors[src * 3 + 1];
     colors[i * 3 + 2] = data.colors[src * 3 + 2];
-    sizes[i] = data.sizes[src] * 1.1;
+    sizes[i] = data.sizes[src] * 1.05;
     seeds[i * 4] = data.seeds[src * 4];
     seeds[i * 4 + 1] = data.seeds[src * 4 + 1];
     seeds[i * 4 + 2] = data.seeds[src * 4 + 2];
     seeds[i * 4 + 3] = data.seeds[src * 4 + 3];
+  }
+  return polishBrainBuffers({ positions, colors, sizes, seeds, count });
+}
+
+/** P0 · denser cyan shell on baked anatomical points (runtime, no re-bake). */
+function polishBrainBuffers(data: BrainBuffers): BrainBuffers {
+  const { count, positions, colors, sizes, seeds } = data;
+  for (let i = 0; i < count; i += 1) {
+    const layer = seeds[i * 4 + 3];
+    const c = i * 3;
+    colors[c] = Math.min(colors[c] * 0.72, 0.22);
+    colors[c + 1] = Math.min(colors[c + 1] * 1.06, 0.82);
+    colors[c + 2] = Math.min(colors[c + 2] * 1.1, 1);
+    sizes[i] *= layer < 0.5 ? 0.82 : 0.92;
   }
   return { positions, colors, sizes, seeds, count };
 }
 
 export function BrainCloud({ particleCount = 160000 }: Props) {
   const group = useRef<THREE.Group>(null);
+  const basePos = useRef(new THREE.Vector3(0.7, 0.02, 0));
 
   const [buffers, setBuffers] = useState<BrainBuffers>(() => {
     if (typeof window === "undefined") {
       return createBrainCloud(Math.min(particleCount, 80000));
     }
-    const mobile = window.innerWidth < 900 || window.devicePixelRatio > 2;
-    return createBrainCloud(mobile ? Math.floor(particleCount * 0.55) : particleCount);
+    const keep = brainKeepRatio();
+    return createBrainCloud(Math.floor(particleCount * keep));
   });
 
   useEffect(() => {
@@ -191,10 +208,12 @@ export function BrainCloud({ particleCount = 160000 }: Props) {
     loadBrainPoints()
       .then((data) => {
         if (cancelled) return;
-        const mobile =
-          typeof window !== "undefined" &&
-          (window.innerWidth < 900 || window.devicePixelRatio > 2);
-        setBuffers(mobile ? thinBuffers(data, 0.5) : data);
+        const keep = brainKeepRatio();
+        const next =
+          keep < 0.99
+            ? thinBuffers(data, keep)
+            : polishBrainBuffers(data);
+        setBuffers(next);
       })
       .catch((err: unknown) => {
         console.error("[BrainCloud] anatomical load failed — keeping procedural brain", err);
@@ -220,19 +239,20 @@ export function BrainCloud({ particleCount = 160000 }: Props) {
     []
   );
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     const { progress, reducedMotion } = getScrollState();
     const motion = sampleBrainMotion(progress);
+    const idle = getScrollIdle();
     uniforms.uTime.value += reducedMotion ? delta * 0.2 : delta;
     uniforms.uScatter.value = THREE.MathUtils.damp(
       uniforms.uScatter.value,
-      Math.max(motion.scatter, motion.network * 0.38),
-      3.5,
+      Math.max(motion.scatter, motion.network * 0.48),
+      3.2,
       delta
     );
     uniforms.uGlow.value = THREE.MathUtils.damp(
       uniforms.uGlow.value,
-      motion.glow,
+      motion.glow + idle * 0.04,
       3,
       delta
     );
@@ -268,20 +288,34 @@ export function BrainCloud({ particleCount = 160000 }: Props) {
     );
 
     if (group.current) {
+      const t = state.clock.elapsedTime;
+      // P3 · idle micro-breath + slow yaw drift when scroll is still
+      const driftY = Math.sin(t * 0.18) * 0.028 * idle;
+      const driftX = Math.cos(t * 0.14) * 0.01 * idle;
+      const breath = 1 + Math.sin(t * 0.65) * 0.014 * idle;
+
       group.current.rotation.y = THREE.MathUtils.damp(
         group.current.rotation.y,
-        motion.rotateY,
+        motion.rotateY + driftY,
         2.2,
         delta
       );
       group.current.rotation.x = THREE.MathUtils.damp(
         group.current.rotation.x,
-        motion.rotateX,
+        motion.rotateX + driftX,
         2.2,
         delta
       );
-      const s = THREE.MathUtils.damp(group.current.scale.x, motion.scale, 2.2, delta);
+      const s = THREE.MathUtils.damp(
+        group.current.scale.x,
+        motion.scale * breath,
+        2.2,
+        delta
+      );
       group.current.scale.setScalar(s);
+
+      group.current.position.x = basePos.current.x + Math.sin(t * 0.12) * 0.012 * idle;
+      group.current.position.y = basePos.current.y + Math.cos(t * 0.16) * 0.008 * idle;
     }
   });
 
@@ -291,12 +325,12 @@ export function BrainCloud({ particleCount = 160000 }: Props) {
         group.current = node;
         if (node && node.userData.bootstrapped !== true) {
           // Arrival hero (ref frames): face slightly left, right-of-center
-          node.rotation.set(0.22, -0.62, 0.08);
-          node.scale.setScalar(1.42);
+          node.rotation.set(0.2, -0.68, 0.06);
+          node.scale.setScalar(1.48);
           node.userData.bootstrapped = true;
         }
       }}
-      position={[0.62, 0.02, 0]}
+      position={[0.7, 0.02, 0]}
     >
       <points geometry={geometry} frustumCulled={false}>
         <shaderMaterial

@@ -4,9 +4,9 @@ import { useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { sampleCamera } from "@/lib/brainGeometry";
-import { getScrollState } from "@/lib/scrollStore";
+import { getScrollIdle, getScrollState } from "@/lib/scrollStore";
 
-/** Step 9 · silkier camera follow + lighter parallax late in the story. */
+/** Silkier camera follow + idle micro-orbit when scroll is still (P3). */
 export function CameraRig() {
   const { camera } = useThree();
   const look = useRef(new THREE.Vector3(0.35, 0.05, 0));
@@ -15,6 +15,7 @@ export function CameraRig() {
   useFrame((state, delta) => {
     const { progress, reducedMotion } = getScrollState();
     const cam = sampleCamera(progress);
+    const idle = getScrollIdle();
 
     pointer.current.x = THREE.MathUtils.damp(
       pointer.current.x,
@@ -34,6 +35,11 @@ export function CameraRig() {
     const target = cam.position.clone();
     target.x += pointer.current.x * parallax;
     target.y += pointer.current.y * parallax * 0.55;
+
+    // Soft idle drift — alive when the viewer pauses on a beat
+    const t = state.clock.elapsedTime;
+    target.x += Math.sin(t * 0.22) * 0.028 * idle;
+    target.y += Math.cos(t * 0.19) * 0.016 * idle;
 
     const follow = reducedMotion ? 6 : 2.2;
     camera.position.lerp(target, 1 - Math.exp(-follow * delta));

@@ -7,8 +7,8 @@ import { sampleBrainMotion } from "@/lib/brainGeometry";
 import { getScrollState } from "@/lib/scrollStore";
 
 /**
- * Mapping sweep:
- * - Arrival: slow hold scan
+ * Mapping sweep — P0: thin laser line + faintest wash (video, not a teal slab).
+ * - Arrival: slow hold scan across specimen
  * - Cortex: tighter surface graze across the folded sheet
  * - Later: story sweep
  */
@@ -30,34 +30,32 @@ export function ScanBeam() {
     const balance = progress >= 0.7 && progress < 0.84;
 
     let z: number;
-    let x = 0.58;
+    // Bias toward brain mass (right-of-center) so wash rarely covers copy
+    let x = 0.72;
     let y = 0.02;
     if (arrival) {
-      z = 0.35 + Math.sin(state.clock.elapsedTime * 0.55) * 0.38;
+      z = 0.32 + Math.sin(state.clock.elapsedTime * 0.5) * 0.34;
+      x = 0.78;
     } else if (cortex) {
-      // Graze across cortical ridges
       const t = (progress - 0.14) / 0.16;
       z = THREE.MathUtils.lerp(0.55, -0.25, t);
       y = 0.12 + Math.sin(state.clock.elapsedTime * 1.1) * 0.04;
-      x = 0.48;
+      x = 0.52;
     } else if (links) {
-      // Region pass across temporal flank
       const t = (progress - 0.42) / 0.14;
       z = THREE.MathUtils.lerp(0.4, -0.35, t);
       y = -0.05 + Math.sin(state.clock.elapsedTime * 0.9) * 0.03;
-      x = 0.35;
+      x = 0.38;
     } else if (vision) {
-      // Soft sweep across occipital pole
       const t = (progress - 0.56) / 0.14;
       z = THREE.MathUtils.lerp(0.25, -0.4, t);
       y = 0.02 + Math.sin(state.clock.elapsedTime * 0.7) * 0.03;
-      x = 0.55;
+      x = 0.58;
     } else if (balance) {
-      // Lock pass across cerebellum
       const t = (progress - 0.7) / 0.14;
       z = THREE.MathUtils.lerp(0.15, -0.2, t);
       y = -0.35 + Math.sin(state.clock.elapsedTime * 0.6) * 0.02;
-      x = 0.5;
+      x = 0.52;
     } else {
       z = THREE.MathUtils.lerp(0.72, -0.72, scan);
     }
@@ -65,61 +63,71 @@ export function ScanBeam() {
     group.current.position.set(x, y, z);
     group.current.rotation.set(
       cortex || links || vision || balance ? 0.08 : 0,
-      cortex ? 0.18 : links ? 0.55 : vision ? 0.05 : balance ? 0.12 : 0.1,
+      cortex ? 0.18 : links ? 0.55 : vision ? 0.05 : balance ? 0.12 : 0.08,
       links ? 0.12 : balance ? -0.08 : 0
     );
 
-    // Signals uses SignalThreads; Release dissolves the mapping beam
     const visible =
       !signals &&
       scatter < 0.2 &&
       (arrival || cortex || links || vision || balance || scan > 0.02);
     const strength = arrival
-      ? 0.7
+      ? 0.75
       : cortex
-        ? 0.75
+        ? 0.72
         : links
-          ? 0.55
+          ? 0.5
           : vision
-            ? 0.5
+            ? 0.48
             : balance
-              ? 0.48
-              : 0.55;
+              ? 0.45
+              : 0.5;
     const target = visible ? strength : 0;
-    // Arrival wash stays faint so headline/body stay readable (ref: thin scan, not a slab)
+
     planeMat.current.opacity = THREE.MathUtils.damp(
       planeMat.current.opacity,
       target *
         (arrival
-          ? 0.055
+          ? 0.028
           : cortex
-            ? 0.07
+            ? 0.035
             : links
-              ? 0.03
+              ? 0.02
               : vision
-                ? 0.04
+                ? 0.025
                 : balance
-                  ? 0.035
-                  : 0.2),
-      7,
+                  ? 0.022
+                  : 0.045),
+      8,
       delta
     );
     lineMat.current.opacity = THREE.MathUtils.damp(
       lineMat.current.opacity,
       target *
-        (cortex ? 0.85 : links ? 0.45 : vision ? 0.55 : balance ? 0.5 : 0.9),
-      7,
+        (arrival
+          ? 0.95
+          : cortex
+            ? 0.88
+            : links
+              ? 0.5
+              : vision
+                ? 0.58
+                : balance
+                  ? 0.52
+                  : 0.7),
+      8,
       delta
     );
   });
 
   return (
     <group ref={group}>
+      {/* Narrow wash ribbon — not a full-height teal slab */}
       <mesh>
-        <planeGeometry args={[2.35, 1.65]} />
+        <planeGeometry args={[1.65, 0.42]} />
         <meshBasicMaterial
           ref={planeMat}
-          color="#a5f3fc"
+          color="#67e8f9"
           transparent
           opacity={0}
           depthWrite={false}
@@ -128,7 +136,7 @@ export function ScanBeam() {
         />
       </mesh>
       <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={[2.4, 0.016]} />
+        <planeGeometry args={[2.15, 0.006]} />
         <meshBasicMaterial
           ref={lineMat}
           color="#ecfeff"

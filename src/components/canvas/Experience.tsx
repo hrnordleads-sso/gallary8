@@ -2,8 +2,9 @@
 
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, Preload } from "@react-three/drei";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import * as THREE from "three";
+import { isConstrainedClient } from "@/lib/deviceProfile";
 import { BrainCloud } from "./BrainCloud";
 import { BrainAura } from "./BrainAura";
 import { Starfield } from "./Starfield";
@@ -35,19 +36,29 @@ function Scene() {
 }
 
 export function Experience() {
+  const [profile, setProfile] = useState({ dprMax: 1.5, antialias: true });
+
+  useEffect(() => {
+    const constrained = isConstrainedClient();
+    setProfile({
+      dprMax: constrained ? 1.25 : 1.5,
+      antialias: !constrained,
+    });
+  }, []);
+
   return (
     <div className="pointer-events-none fixed inset-0 z-0">
       <Canvas
-        dpr={[1, 1.75]}
+        dpr={[1, profile.dprMax]}
         gl={{
-          antialias: true,
+          antialias: profile.antialias,
           alpha: false,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 0.72,
+          toneMappingExposure: 0.66,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
-        camera={{ position: [-0.72, 0.06, 3.35], fov: 38, near: 0.1, far: 60 }}
+        camera={{ position: [-0.88, 0.08, 3.55], fov: 38, near: 0.1, far: 60 }}
       >
         <Suspense fallback={null}>
           <Scene />

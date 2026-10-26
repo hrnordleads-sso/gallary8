@@ -4,6 +4,8 @@ export type FieldCallout = {
   /** Percent position within the viewport overlay */
   x: number;
   y: number;
+  /** Leader line grows left or right of the crosshair (video HUD style). */
+  side?: "left" | "right";
 };
 
 export type Chapter = {
@@ -38,21 +40,21 @@ export const CHAPTERS: Chapter[] = [
   {
     id: "cortex",
     index: "02",
-    eyebrow: "_ THE CORTEX _",
+    eyebrow: "> THE_CORTEX _",
     title: "The folded sheet\nwhere thought happens.",
     body: "Two millimetres thick, crushed into ridges and valleys to fit. The system pushes in on the cortical surface — every fold buys more thinking room without a larger skull.",
     status: "SURFACE_MAP",
     specimen: "FRONTAL CORTEX",
     align: "right",
     callouts: [
-      { id: "frontal", label: "REGION: FRONTAL CORTEX", x: 38, y: 62 },
-      { id: "depth", label: "DEPTH: 2.0 MM", x: 58, y: 72 },
+      { id: "frontal", label: "REGION: FRONTAL_CORTEX", x: 36, y: 58, side: "right" },
+      { id: "depth", label: "DEPTH: 2.0 MM", x: 56, y: 70, side: "right" },
     ],
   },
   {
     id: "signals",
     index: "03",
-    eyebrow: "· SIGNALS ·",
+    eyebrow: "> SIGNALS _",
     title: "Everything you are,\ntravelling as electricity.",
     body: "Step inside the traffic. Each pulse is a thought in transit — chemical to electric and back, a hundred metres a second, never still.",
     status: "THROUGHPUT",
@@ -68,15 +70,15 @@ export const CHAPTERS: Chapter[] = [
   {
     id: "links",
     index: "04",
-    eyebrow: "_ THE NETWORK _",
+    eyebrow: "> THE_NETWORK _",
     title: "No neuron thinks alone.",
     body: "Trillions of connections wire the regions into one system. The scan isolates the temporal flank and watches it bind to the rest — meaning lives in the links, not the nodes.",
     status: "REGION_PASS",
     specimen: "TEMPORAL · ASSOC",
     align: "center",
     callouts: [
-      { id: "temporal", label: "TEMPORAL · ASSOC", x: 54, y: 46 },
-      { id: "inner", label: "INNER", x: 64, y: 58 },
+      { id: "temporal", label: "TEMPORAL · ASSOC", x: 52, y: 44, side: "left" },
+      { id: "inner", label: "INNER", x: 62, y: 56, side: "left" },
     ],
   },
   {
@@ -89,28 +91,28 @@ export const CHAPTERS: Chapter[] = [
     specimen: "OCCIPITAL · LOBE",
     align: "left",
     callouts: [
-      { id: "occipital", label: "OCCIPITAL LOBE", x: 28, y: 58 },
-      { id: "v1", label: "VISUAL V1", x: 48, y: 52 },
+      { id: "occipital", label: "OCCIPITAL LOBE", x: 30, y: 56, side: "right" },
+      { id: "v1", label: "VISUAL V1", x: 48, y: 50, side: "right" },
     ],
   },
   {
     id: "balance",
     index: "06",
-    eyebrow: "BALANCE",
+    eyebrow: "> BALANCE _",
     title: "The quiet half\nthat keeps you upright.",
     body: "Tucked beneath and behind, the cerebellum holds a tenth of the mass and over half the neurons — timing, balance, and every movement you never think about.",
     status: "FOCUS_LOCK",
     specimen: "CEREBELLUM",
     align: "right",
     callouts: [
-      { id: "balance", label: "BALANCE", x: 46, y: 62 },
-      { id: "cerebellum", label: "REGION: CEREBELLUM", x: 58, y: 72 },
+      { id: "balance", label: "BALANCE", x: 44, y: 60, side: "right" },
+      { id: "cerebellum", label: "REGION: CEREBELLUM", x: 56, y: 72, side: "right" },
     ],
   },
   {
     id: "release",
     index: "07",
-    eyebrow: "THE WHOLE",
+    eyebrow: "> THE_WHOLE _",
     title: "Then it becomes the network\nit always was.",
     body: "The surface lets go and the points scatter into constellation — the brain resolving into the living web of signal it has been all along.",
     status: "CONSTELLATION",
