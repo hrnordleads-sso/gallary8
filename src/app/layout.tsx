@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { BrainPrefetch } from "@/components/BrainPrefetch";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -20,6 +21,12 @@ export const metadata: Metadata = {
     "A cinematic scroll-driven 3D neural field — point-cloud cerebrum, starlit void, and synchronized storytelling.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,6 +37,7 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${plexMono.variable} overflow-x-hidden antialiased`}
       >
+        <BrainPrefetch />
         {children}
       </body>
     </html>

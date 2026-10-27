@@ -45,26 +45,26 @@ export function Narrative() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // P2 · mobile: keep copy in upper band so brain/constellation stay readable
+  // Mobile: copy in upper safe band; brain reads in lower field
   const mobileStack =
     isArrival || isRelease
-      ? "items-start pt-[11vh] sm:items-center sm:pt-0"
+      ? "items-start pt-[max(8vh,env(safe-area-inset-top))] sm:items-center sm:pt-0"
       : isCortex
-        ? "items-start pt-[16vh] sm:items-start sm:pt-0"
+        ? "items-start pt-[max(12vh,env(safe-area-inset-top))] sm:items-start sm:pt-0"
         : isSignals
-          ? "items-start pt-[12vh] sm:pt-[16vh]"
+          ? "items-start pt-[max(10vh,env(safe-area-inset-top))] sm:pt-[16vh]"
           : isLinks
-            ? "items-end pb-[30vh] sm:items-center sm:pb-0"
+            ? "items-end pb-[max(28vh,env(safe-area-inset-bottom))] sm:items-center sm:pb-0"
             : isVision
-              ? "items-end pb-[28vh] sm:items-end sm:pb-[22vh]"
+              ? "items-end pb-[max(26vh,env(safe-area-inset-bottom))] sm:items-end sm:pb-[22vh]"
               : isBalance
-                ? "items-end pb-[26vh] sm:items-end sm:pb-0"
+                ? "items-end pb-[max(24vh,env(safe-area-inset-bottom))] sm:items-end sm:pb-0"
                 : "items-center";
 
   return (
     <div className={`pointer-events-none fixed inset-0 z-20 flex ${mobileStack}`}>
       <div
-        className={`narrative-panel mx-auto w-full max-w-[22rem] transition-[opacity,transform] duration-400 ease-out sm:mx-0 sm:max-w-lg md:max-w-xl ${
+        className={`narrative-panel mx-auto w-full max-w-[min(22rem,92vw)] transition-[opacity,transform] duration-400 ease-out sm:mx-0 sm:max-w-lg md:max-w-xl ${
           isArrival ? "px-4 sm:px-5 md:px-5" : "px-5 sm:px-6"
         } ${panelPos} ${
           isArrival

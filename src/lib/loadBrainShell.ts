@@ -3,10 +3,12 @@ import { orientBrainPositions } from "@/lib/brainSpace";
 
 const MAGIC = 0xb17a1002;
 
+let cache: Promise<THREE.BufferGeometry> | null = null;
+
 function candidateUrls(): string[] {
-  const base = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
+  const env = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
   const path = "/models/brain-shell.bin";
-  const urls = [`${base}${path}`, path];
+  const urls = [`${env}${path}`, path];
   if (typeof window !== "undefined" && window.location.pathname.startsWith("/gallary8")) {
     urls.unshift("/gallary8/models/brain-shell.bin");
   }
@@ -31,23 +33,30 @@ function parseShellBin(buf: ArrayBuffer): THREE.BufferGeometry {
   return geo;
 }
 
-/** Load decimated anatomical shell (same space as brain-points.bin). */
-export async function loadBrainShell(): Promise<THREE.BufferGeometry> {
-  const urls = candidateUrls();
-  let lastError: unknown = null;
-  for (const url of urls) {
-    try {
-      const res = await fetch(url);
-      if (!res.ok) {
-        lastError = new Error(`HTTP ${res.status} for ${url}`);
-        continue;
+/** Load decimated anatomical shell (same space as brain-points.bin). Cached. */
+export function loadBrainShell(): Promise<THREE.BufferGeometry> {
+  if (cache) return cache;
+
+  cache = (async () => {
+    const urls = candidateUrls();
+    let lastError: unknown = null;
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { cache: "force-cache" });
+        if (!res.ok) {
+          lastError = new Error(`HTTP ${res.status} for ${url}`);
+          continue;
+        }
+        return parseShellBin(await res.arrayBuffer());
+      } catch (err) {
+        lastError = err;
       }
-      return parseShellBin(await res.arrayBuffer());
-    } catch (err) {
-      lastError = err;
     }
-  }
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("Failed to load brain-shell.bin");
+    cache = null;
+    throw lastError instanceof Error
+      ? lastError
+      : new Error("Failed to load brain-shell.bin");
+  })();
+
+  return cache;
 }

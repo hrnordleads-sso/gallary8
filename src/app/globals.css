@@ -26,11 +26,15 @@
 html {
   scroll-behavior: auto;
   background: var(--navy);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-height: 100%;
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
   /* Deep navy — luminous brain pocket center-right (text backdrop) */
   background: radial-gradient(
     ellipse at 62% 45%,
@@ -41,6 +45,20 @@ body {
   );
   color: var(--foreground);
   font-family: var(--font-display), system-ui, sans-serif;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+@media (max-width: 639px) {
+  body {
+    background: radial-gradient(
+      ellipse at 50% 72%,
+      #0e2a4a 0%,
+      #071a32 36%,
+      #010814 70%,
+      #00040c 100%
+    );
+  }
 }
 
 .font-mono,

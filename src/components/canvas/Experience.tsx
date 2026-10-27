@@ -4,7 +4,9 @@ import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, Preload } from "@react-three/drei";
 import { Suspense, useEffect, useState } from "react";
 import * as THREE from "three";
-import { isConstrainedClient } from "@/lib/deviceProfile";
+import { canvasDprMax, isConstrainedClient } from "@/lib/deviceProfile";
+import { getBrainLayout } from "@/lib/brainOrigin";
+import { prefetchBrainAssets } from "@/lib/loadBrainPoints";
 import { BrainCloud } from "./BrainCloud";
 import { Starfield } from "./Starfield";
 import { ScanBeam } from "./ScanBeam";
@@ -12,7 +14,7 @@ import { SignalThreads } from "./SignalThreads";
 import { CameraRig } from "./CameraRig";
 import { PostFX } from "./PostFX";
 
-function Scene() {
+function Scene({ showThreads }: { showThreads: boolean }) {
   return (
     <>
       <color attach="background" args={["#010814"]} />
@@ -22,7 +24,7 @@ function Scene() {
       <pointLight position={[-1.8, -0.3, 2.2]} intensity={0.45} color="#40e0d0" distance={12} />
       <Starfield />
       <BrainCloud />
-      <SignalThreads />
+      {showThreads ? <SignalThreads /> : null}
       <ScanBeam />
       <CameraRig />
       <Suspense fallback={null}>
@@ -34,18 +36,38 @@ function Scene() {
 }
 
 export function Experience() {
-  const [profile, setProfile] = useState({ dprMax: 1.5, antialias: true });
+  const [profile, setProfile] = useState({
+    dprMax: 1.5,
+    antialias: true,
+    showThreads: true,
+    fov: 38,
+    cam: [-0.3, 0.08, 3.8] as [number, number, number],
+  });
 
   useEffect(() => {
-    const constrained = isConstrainedClient();
-    setProfile({
-      dprMax: constrained ? 1.25 : 1.5,
-      antialias: !constrained,
-    });
+    prefetchBrainAssets();
+    const apply = () => {
+      const constrained = isConstrainedClient();
+      const layout = getBrainLayout();
+      setProfile({
+        dprMax: canvasDprMax(),
+        antialias: !constrained,
+        showThreads: !constrained,
+        fov: layout.fov,
+        cam: layout.cameraPos.toArray() as [number, number, number],
+      });
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    window.addEventListener("orientationchange", apply);
+    return () => {
+      window.removeEventListener("resize", apply);
+      window.removeEventListener("orientationchange", apply);
+    };
   }, []);
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-0">
+    <div className="pointer-events-none fixed inset-0 z-0 touch-none">
       <Canvas
         dpr={[1, profile.dprMax]}
         gl={{
@@ -56,10 +78,15 @@ export function Experience() {
           toneMappingExposure: 0.84,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
-        camera={{ position: [-0.3, 0.08, 3.8], fov: 38, near: 0.1, far: 60 }}
+        camera={{
+          position: profile.cam,
+          fov: profile.fov,
+          near: 0.1,
+          far: 60,
+        }}
       >
         <Suspense fallback={null}>
-          <Scene />
+          <Scene showThreads={profile.showThreads} />
         </Suspense>
         <AdaptiveDpr pixelated />
         <AdaptiveEvents />

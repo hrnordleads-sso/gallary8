@@ -30,7 +30,7 @@ export function HUD() {
 
   return (
     <div className="hud-root pointer-events-none fixed inset-0 z-30 text-[8px] uppercase tracking-[0.2em] text-[#c8e7f5]/72 sm:text-[10px] sm:tracking-[0.22em]">
-      <header className="absolute left-0 right-0 top-0 flex flex-wrap items-center gap-x-2 gap-y-1 overflow-hidden px-3 py-2.5 sm:gap-x-4 sm:px-5 sm:py-3">
+      <header className="absolute left-0 right-0 top-0 flex flex-wrap items-center gap-x-2 gap-y-1 overflow-hidden px-3 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] sm:gap-x-4 sm:px-5 sm:py-3">
         <span className="shrink-0 text-[#67e8f9]/95">{HUD_METRICS.brand}</span>
         <Dot className="hidden min-[400px]:inline" />
         <span className="hidden shrink-0 sm:inline">{HUD_METRICS.neurons}</span>
@@ -46,7 +46,7 @@ export function HUD() {
         <Waveform />
       </header>
 
-      <div className="absolute bottom-9 left-3 right-3 flex flex-wrap items-end justify-between gap-3 sm:bottom-8 sm:left-5 sm:right-5">
+      <div className="absolute bottom-[max(2.25rem,env(safe-area-inset-bottom))] left-3 right-3 flex flex-wrap items-end justify-between gap-3 sm:bottom-8 sm:left-5 sm:right-5">
         <div className="space-y-0.5 text-[#c8e7f5]/65 sm:space-y-1">
           <p>+ SPECIMEN: {current.specimen}</p>
           <p>+ STATUS: {current.status}</p>

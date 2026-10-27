@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { sampleBrainMotion } from "@/lib/brainGeometry";
+import { getBrainLayout } from "@/lib/brainOrigin";
 import { getScrollState } from "@/lib/scrollStore";
 
 /**
@@ -35,7 +36,7 @@ export function ScanBeam() {
     let y = 0.02;
     if (arrival) {
       z = 0.32 + Math.sin(state.clock.elapsedTime * 0.5) * 0.34;
-      x = 1.4;
+      x = getBrainLayout().origin.x;
     } else if (cortex) {
       const t = (progress - 0.14) / 0.16;
       z = THREE.MathUtils.lerp(0.55, -0.25, t);

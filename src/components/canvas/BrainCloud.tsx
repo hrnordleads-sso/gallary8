@@ -8,11 +8,14 @@ import {
   sampleBrainMotion,
   type BrainBuffers,
 } from "@/lib/brainGeometry";
-import { BRAIN_ARRIVAL, BRAIN_ORIGIN } from "@/lib/brainOrigin";
-import { brainKeepRatio } from "@/lib/deviceProfile";
-import { loadBrainPoints } from "@/lib/loadBrainPoints";
+import { BRAIN_ARRIVAL, getBrainLayout } from "@/lib/brainOrigin";
+import { brainKeepRatio, useLiteBrainPoints } from "@/lib/deviceProfile";
+import { loadBrainPoints, prefetchBrainAssets } from "@/lib/loadBrainPoints";
 import { getScrollIdle, getScrollState } from "@/lib/scrollStore";
 import { BrainMesh } from "./BrainMesh";
+
+/** Tiny procedural stand-in so open is instant until anatomical bin lands. */
+const PLACEHOLDER_POINTS = 10000;
 
 const vertexShader = /* glsl */ `
   attribute float aSeed;
@@ -230,35 +233,38 @@ function polishBrainBuffers(data: BrainBuffers): BrainBuffers {
 export function BrainCloud({ particleCount = 200000 }: Props) {
   const group = useRef<THREE.Group>(null);
   const material = useRef<THREE.ShaderMaterial>(null);
-  const basePos = useRef(BRAIN_ORIGIN.clone());
+  const layout = useRef(getBrainLayout());
+  const basePos = useRef(layout.current.origin.clone());
+  const baseScale = useRef(layout.current.scale);
 
-  const [buffers, setBuffers] = useState<BrainBuffers>(() => {
-    if (typeof window === "undefined") {
-      return createBrainCloud(Math.min(particleCount, 80000));
-    }
-    const keep = brainKeepRatio();
-    return createBrainCloud(Math.floor(particleCount * keep));
-  });
+  const [buffers, setBuffers] = useState<BrainBuffers>(() =>
+    createBrainCloud(PLACEHOLDER_POINTS)
+  );
 
   useEffect(() => {
+    prefetchBrainAssets();
     let cancelled = false;
     loadBrainPoints()
       .then((data) => {
         if (cancelled) return;
-        const keep = brainKeepRatio();
+        const keep = useLiteBrainPoints() ? 1 : brainKeepRatio();
         const next =
-          keep < 0.99
-            ? thinBuffers(data, keep)
-            : polishBrainBuffers(data);
-        setBuffers(next);
+          keep < 0.99 ? thinBuffers(data, keep) : polishBrainBuffers(data);
+        // Defer geometry swap one frame so first paint stays smooth
+        requestAnimationFrame(() => {
+          if (!cancelled) setBuffers(next);
+        });
       })
       .catch((err: unknown) => {
-        console.error("[BrainCloud] anatomical load failed — keeping procedural brain", err);
+        console.error("[BrainCloud] anatomical load failed — keeping placeholder", err);
+        if (!cancelled) {
+          setBuffers(createBrainCloud(Math.min(particleCount, 48000)));
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [particleCount]);
 
   const geometry = useMemo(() => buffersToGeometry(buffers), [buffers]);
 
@@ -345,10 +351,16 @@ export function BrainCloud({ particleCount = 200000 }: Props) {
 
     if (group.current) {
       const t = state.clock.elapsedTime;
+      layout.current = getBrainLayout();
+      basePos.current.copy(layout.current.origin);
+      baseScale.current = layout.current.scale;
       // P3 · idle micro-breath + slow yaw drift when scroll is still
       const driftY = Math.sin(t * 0.18) * 0.028 * idle;
       const driftX = Math.cos(t * 0.14) * 0.01 * idle;
       const breath = 1 + Math.sin(t * 0.65) * 0.014 * idle;
+      const arrivalBlend = 1 - THREE.MathUtils.smoothstep(progress / 0.1, 0, 1);
+      const scaleTarget =
+        THREE.MathUtils.lerp(motion.scale, baseScale.current, arrivalBlend) * breath;
 
       group.current.rotation.y = THREE.MathUtils.damp(
         group.current.rotation.y,
@@ -362,12 +374,7 @@ export function BrainCloud({ particleCount = 200000 }: Props) {
         2.2,
         delta
       );
-      const s = THREE.MathUtils.damp(
-        group.current.scale.x,
-        motion.scale * breath,
-        2.2,
-        delta
-      );
+      const s = THREE.MathUtils.damp(group.current.scale.x, scaleTarget, 2.8, delta);
       group.current.scale.setScalar(s);
 
       group.current.position.x = basePos.current.x + Math.sin(t * 0.12) * 0.012 * idle;
@@ -380,12 +387,14 @@ export function BrainCloud({ particleCount = 200000 }: Props) {
       ref={(node) => {
         group.current = node;
         if (node && node.userData.bootstrapped !== true) {
+          const boot = getBrainLayout();
           node.rotation.copy(BRAIN_ARRIVAL.rotation);
-          node.scale.setScalar(BRAIN_ARRIVAL.scale);
+          node.scale.setScalar(boot.scale);
+          node.position.copy(boot.origin);
           node.userData.bootstrapped = true;
         }
       }}
-      position={BRAIN_ORIGIN.toArray() as [number, number, number]}
+      position={getBrainLayout().origin.toArray() as [number, number, number]}
     >
       {/* Anatomical under-shell — fold silhouette; particles carry electric glow */}
       <BrainMesh />
