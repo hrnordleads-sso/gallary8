@@ -13,10 +13,21 @@ npm install
 npm run dev
 ```
 
-## Production (GitHub Pages)
+## Production
+
+### GitHub Pages (path `/gallary8`)
 
 ```bash
 npm run build:pages
 ```
 
 Static output lands in `out/`. Live: https://hrnordleads-sso.github.io/gallary8/
+
+### Netlify / Vercel (site root)
+
+```bash
+npm run build
+```
+
+Then deploy the `out/` folder (see `netlify.toml` / `vercel.json`).
+Or drag `out/` (or a zip of it) onto https://app.netlify.com/drop
