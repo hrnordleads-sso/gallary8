@@ -13,7 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const glbPath = path.join(root, "assets", "brain.glb");
 const outPath = path.join(root, "public", "models", "brain-points.bin");
-const COUNT = 220000;
+const COUNT = 240000;
 
 function hash(n) {
   const x = Math.sin(n * 127.1) * 43758.5453;
@@ -114,8 +114,8 @@ async function main() {
   const electric = new THREE.Color("#22d3ee");
   const ice = new THREE.Color("#a5f3fc");
 
-  // Dense cortex shell + soft interior nebula (rim reads brighter in reference)
-  const surfaceCount = Math.floor(COUNT * 0.86);
+  // Dense cortex shell + soft interior nebula (video: surface-led silhouette)
+  const surfaceCount = Math.floor(COUNT * 0.92);
 
   for (let i = 0; i < COUNT; i += 1) {
     sampler.sample(tmp);
@@ -124,12 +124,12 @@ async function main() {
     if (layer === 1) {
       tmp.multiplyScalar(0.42 + hash(i * 3.1) * 0.4);
     }
-    // Subtle cortical fold lift on surface
+    // Tiny fold lift only — keep true anatomical silhouette from the mesh
     if (layer === 0) {
       const n =
-        0.01 *
-        Math.sin(tmp.x * 26 + tmp.z * 16) *
-        Math.sin(tmp.y * 20 + tmp.x * 12);
+        0.006 *
+        Math.sin(tmp.x * 28 + tmp.z * 18) *
+        Math.sin(tmp.y * 22 + tmp.x * 14);
       if (radius > 1e-5) tmp.addScaledVector(tmp.clone().normalize(), n);
     }
 

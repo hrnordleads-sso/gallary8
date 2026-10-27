@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "build:pages": "cross-env GITHUB_PAGES=true next build",
+    "bake:brain": "node scripts/bake-brain-points.mjs && node scripts/export-brain-shell.mjs",
     "start": "next start",
     "lint": "eslint"
   },

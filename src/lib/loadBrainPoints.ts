@@ -1,4 +1,5 @@
 import type { BrainBuffers } from "@/lib/brainGeometry";
+import { orientBrainPositions } from "@/lib/brainSpace";
 
 const MAGIC = 0xb17a1001;
 
@@ -36,8 +37,11 @@ function parseBrainBin(buf: ArrayBuffer): BrainBuffers {
   offset += count * 4;
   const seeds = new Float32Array(buf, offset, count * 4);
 
+  const posCopy = new Float32Array(positions);
+  orientBrainPositions(posCopy);
+
   return {
-    positions: new Float32Array(positions),
+    positions: posCopy,
     colors: new Float32Array(colors),
     sizes: new Float32Array(sizes),
     seeds: new Float32Array(seeds),

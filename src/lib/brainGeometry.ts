@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { BRAIN_ARRIVAL } from "@/lib/brainOrigin";
 
 export type BrainBuffers = {
   positions: Float32Array;
@@ -71,15 +72,16 @@ function warpToBrain(u: number, v: number, w: number, layer: number): THREE.Vect
   x = Math.max(0.018, x - 0.012 * (1 - absU));
   x *= hemisphere;
 
-  // P0 · deeper gyri/sulci so folds read at hero distance (video silhouette)
+  // Stronger gyri/sulci — video silhouette reads as folded cortex, not a smooth blob
   const fold =
     1 +
-    0.13 * Math.sin(x * 26 + z * 18) +
-    0.1 * Math.sin(y * 30 + x * 14) +
-    0.075 * Math.sin(z * 22 + y * 20) +
-    0.055 * Math.sin(x * 12 + y * 16 + z * 9) +
-    0.04 * Math.sin(x * 38 + z * 31) +
-    0.045 * noise3(x * 2.6, y * 2.6, z * 2.6);
+    0.18 * Math.sin(x * 30 + z * 20) +
+    0.14 * Math.sin(y * 34 + x * 16) +
+    0.1 * Math.sin(z * 26 + y * 22) +
+    0.072 * Math.sin(x * 14 + y * 18 + z * 11) +
+    0.058 * Math.sin(x * 44 + z * 36) +
+    0.045 * Math.sin(x * 52 + y * 41 + z * 29) +
+    0.055 * noise3(x * 3.1, y * 3.1, z * 3.1);
 
   if (layer < 0.5) {
     x *= fold;
@@ -110,15 +112,15 @@ export function createBrainCloud(count: number): BrainBuffers {
   const bright = new THREE.Color("#a5f3fc");
 
   for (let i = 0; i < count; i += 1) {
-    // ~90% cortex shell, ~10% interior (denser video silhouette)
-    const layer = i / count < 0.9 ? 0 : 1;
+    // ~94% cortex shell — denser surface silhouette
+    const layer = i / count < 0.94 ? 0 : 1;
     const t = (i + 0.5) / count;
     const incl = Math.acos(1 - 2 * ((t * 1.61803398875) % 1));
     const azim = 2 * Math.PI * 0.61803398875 * i;
     let r =
-      layer === 0 ? 0.985 + hash(i * 1.7) * 0.03 : 0.18 + hash(i * 3.1) * 0.48;
+      layer === 0 ? 0.992 + hash(i * 1.7) * 0.018 : 0.16 + hash(i * 3.1) * 0.42;
     // Keep shell tight — less “shaggy” halo than free jitter
-    r += (hash(i * 5.3) - 0.5) * (layer === 0 ? 0.012 : 0.04);
+    r += (hash(i * 5.3) - 0.5) * (layer === 0 ? 0.008 : 0.035);
 
     const sx = r * Math.sin(incl) * Math.cos(azim);
     const sy = r * Math.cos(incl);
@@ -162,8 +164,8 @@ export function createBrainCloud(count: number): BrainBuffers {
     seeds[s + 1] = hash(i * 2.3);
     seeds[s + 2] = hash(i * 3.7);
     seeds[s + 3] = layer;
-    // Smaller surface dots = denser fold read; soft interior fill
-    sizes[i] = layer === 0 ? 0.42 + hash(i * 4.1) * 0.48 : 0.75 + hash(i * 6.2) * 0.9;
+    // Finer shell dots pack denser folds; soft interior stays sparse
+    sizes[i] = layer === 0 ? 0.34 + hash(i * 4.1) * 0.38 : 0.62 + hash(i * 6.2) * 0.7;
   }
 
   return { positions, colors, seeds, sizes, count };
@@ -172,9 +174,9 @@ export function createBrainCloud(count: number): BrainBuffers {
 /** Camera: Arrival holds text-left / brain-right, then story orbit. P0 locks vs ref frames. */
 export function sampleCamera(progress: number) {
   const keys = [
-    // ARRIVAL — wider hold, brain clearly right of copy (ref 001–004)
-    { p: 0.0, pos: new THREE.Vector3(-0.88, 0.08, 3.55), look: new THREE.Vector3(0.68, 0.02, 0) },
-    { p: 0.08, pos: new THREE.Vector3(-0.72, 0.1, 3.28), look: new THREE.Vector3(0.62, 0.02, 0) },
+    // ARRIVAL — large brain as text backdrop (center-right), copy clears left
+    { p: 0.0, pos: new THREE.Vector3(-0.3, 0.08, 3.8), look: new THREE.Vector3(0.45, -0.02, 0) },
+    { p: 0.08, pos: new THREE.Vector3(-0.18, 0.06, 3.5), look: new THREE.Vector3(0.5, -0.02, 0) },
     // CORTEX — push in on folds without clipping silhouette (ref 005–010)
     { p: 0.14, pos: new THREE.Vector3(-0.08, 0.18, 2.55), look: new THREE.Vector3(0.42, 0.08, 0.02) },
     { p: 0.18, pos: new THREE.Vector3(0.18, 0.22, 2.18), look: new THREE.Vector3(0.3, 0.12, 0.05) },
@@ -200,11 +202,11 @@ export function sampleCamera(progress: number) {
     { p: 0.76, pos: new THREE.Vector3(0.6, -0.58, -1.65), look: new THREE.Vector3(0.58, -0.5, 0.0) },
     { p: 0.8, pos: new THREE.Vector3(0.56, -0.75, -1.32), look: new THREE.Vector3(0.55, -0.55, -0.04) },
     { p: 0.84, pos: new THREE.Vector3(0.38, -0.5, -1.8), look: new THREE.Vector3(0.52, -0.42, 0.04) },
-    // RELEASE — wide constellation pull-back (ref 032–034)
-    { p: 0.86, pos: new THREE.Vector3(0.22, 0.06, 2.85), look: new THREE.Vector3(0.18, -0.04, 0) },
-    { p: 0.9, pos: new THREE.Vector3(0.04, 0.1, 4.35), look: new THREE.Vector3(0.04, 0.0, 0) },
-    { p: 0.95, pos: new THREE.Vector3(0.0, 0.05, 5.45), look: new THREE.Vector3(0, 0, 0) },
-    { p: 1.0, pos: new THREE.Vector3(0.0, 0.02, 6.2), look: new THREE.Vector3(0, 0, 0) },
+    // RELEASE — pull back so scatter reads as open field (ref 032)
+    { p: 0.86, pos: new THREE.Vector3(0.12, 0.08, 3.4), look: new THREE.Vector3(0.1, -0.02, 0) },
+    { p: 0.9, pos: new THREE.Vector3(0.02, 0.1, 5.1), look: new THREE.Vector3(0.02, 0.0, 0) },
+    { p: 0.95, pos: new THREE.Vector3(0.0, 0.06, 6.4), look: new THREE.Vector3(0, 0, 0) },
+    { p: 1.0, pos: new THREE.Vector3(0.0, 0.04, 7.2), look: new THREE.Vector3(0, 0, 0) },
   ];
 
   let i = 0;
@@ -248,35 +250,39 @@ export function sampleBrainMotion(progress: number) {
     0,
     1
   );
+  // Frontal-led Arrival (matches oriented bake: +Z anterior) → then orbit chapters
   const rotateY =
-    THREE.MathUtils.lerp(-0.68, -0.48, arrival) +
-    cortex * 0.5 +
+    THREE.MathUtils.lerp(BRAIN_ARRIVAL.rotation.y, BRAIN_ARRIVAL.rotation.y - 0.08, arrival) +
+    cortex * 0.48 +
     signals * 0.55 +
-    links * 1.0 +
+    links * 1.05 +
     vision * 1.4 +
     balance * 1.25 +
-    progress * Math.PI * 0.42;
+    progress * Math.PI * 0.35;
   const rotateX =
-    THREE.MathUtils.lerp(0.2, 0.26, arrival) +
-    cortex * 0.16 +
+    THREE.MathUtils.lerp(BRAIN_ARRIVAL.rotation.x, BRAIN_ARRIVAL.rotation.x + 0.04, arrival) +
+    cortex * 0.14 +
     signals * -0.08 +
     links * 0.05 +
     vision * 0.1 +
     balance * 0.3 +
-    Math.sin(progress * Math.PI) * 0.07;
+    Math.sin(progress * Math.PI) * 0.06;
   const resolve = THREE.MathUtils.smoothstep(progress / 0.06, 0, 1);
-  // P1 · Release constellation opens earlier + fuller; Signals network denser mid-beat
-  const release = THREE.MathUtils.smoothstep((progress - 0.84) / 0.13, 0, 1);
+  // Release hits hard sooner — video dissolves into open constellation by ~mid chapter
+  const release = THREE.MathUtils.smoothstep((progress - 0.82) / 0.09, 0, 1);
+  // Arrival scale from BRAIN_ARRIVAL — keep right-weighted framing clear of copy
   const scale =
-    THREE.MathUtils.lerp(1.42, 1.58, resolve) +
-    cortex * 0.1 +
-    signals * 0.18 +
-    links * 0.05 +
-    vision * 0.07 +
-    balance * 0.12 +
-    release * 0.42 +
-    Math.sin(progress * Math.PI * 0.85) * 0.04;
-  const scatter = release;
+    THREE.MathUtils.lerp(BRAIN_ARRIVAL.scale, BRAIN_ARRIVAL.scale - 0.06, resolve) +
+    cortex * 0.08 +
+    signals * 0.16 +
+    links * 0.04 +
+    vision * 0.06 +
+    balance * 0.1 +
+    // Don't inflate residual silhouette — scatter owns the expansion
+    release * 0.22 +
+    Math.sin(progress * Math.PI * 0.85) * 0.035;
+  // Ease-out scatter so the cloud opens wide before end
+  const scatter = release * release * (3 - 2 * release);
   // Partial dissolve during Signals — abstract network, not full constellation
   const network = THREE.MathUtils.clamp(
     THREE.MathUtils.smoothstep((progress - 0.3) / 0.07, 0, 1) *
@@ -285,16 +291,16 @@ export function sampleBrainMotion(progress: number) {
     1
   );
   const scan = THREE.MathUtils.clamp(progress / 0.55, 0, 1);
-  // P0 · slightly cooler glow curve — cyan aura without white bloom wash
+  // Keep Arrival glow moderate so cortex silhouette stays sharp (not a white blob)
   const glow =
-    THREE.MathUtils.lerp(0.68, 0.88, resolve) +
+    THREE.MathUtils.lerp(0.7, 0.88, resolve) +
     cortex * 0.14 +
     signals * 0.18 +
     links * 0.12 +
     vision * 0.14 +
     balance * 0.16 +
-    Math.sin(progress * Math.PI * 2) * 0.06 +
-    scatter * 0.32;
+    Math.sin(progress * Math.PI * 2) * 0.04 -
+    scatter * 0.42;
   const highlight = THREE.MathUtils.clamp(
     THREE.MathUtils.smoothstep((progress - 0.12) / 0.1, 0, 1) *
       (1 - THREE.MathUtils.smoothstep((progress - 0.3) / 0.12, 0, 1)),

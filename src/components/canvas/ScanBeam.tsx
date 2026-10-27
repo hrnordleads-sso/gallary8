@@ -31,11 +31,11 @@ export function ScanBeam() {
 
     let z: number;
     // Bias toward brain mass (right-of-center) so wash rarely covers copy
-    let x = 0.72;
+    let x = 0.55;
     let y = 0.02;
     if (arrival) {
       z = 0.32 + Math.sin(state.clock.elapsedTime * 0.5) * 0.34;
-      x = 0.78;
+      x = 1.4;
     } else if (cortex) {
       const t = (progress - 0.14) / 0.16;
       z = THREE.MathUtils.lerp(0.55, -0.25, t);
@@ -71,10 +71,11 @@ export function ScanBeam() {
       !signals &&
       scatter < 0.2 &&
       (arrival || cortex || links || vision || balance || scan > 0.02);
+    // Arrival scan is a thin laser in the video — keep wash faint
     const strength = arrival
-      ? 0.75
+      ? 0.16
       : cortex
-        ? 0.72
+        ? 0.62
         : links
           ? 0.5
           : vision
@@ -88,9 +89,9 @@ export function ScanBeam() {
       planeMat.current.opacity,
       target *
         (arrival
-          ? 0.028
+          ? 0.014
           : cortex
-            ? 0.035
+            ? 0.032
             : links
               ? 0.02
               : vision
@@ -105,9 +106,9 @@ export function ScanBeam() {
       lineMat.current.opacity,
       target *
         (arrival
-          ? 0.95
+          ? 0.4
           : cortex
-            ? 0.88
+            ? 0.75
             : links
               ? 0.5
               : vision

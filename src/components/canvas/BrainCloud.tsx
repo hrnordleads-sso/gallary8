@@ -8,9 +8,11 @@ import {
   sampleBrainMotion,
   type BrainBuffers,
 } from "@/lib/brainGeometry";
+import { BRAIN_ARRIVAL, BRAIN_ORIGIN } from "@/lib/brainOrigin";
 import { brainKeepRatio } from "@/lib/deviceProfile";
 import { loadBrainPoints } from "@/lib/loadBrainPoints";
 import { getScrollIdle, getScrollState } from "@/lib/scrollStore";
+import { BrainMesh } from "./BrainMesh";
 
 const vertexShader = /* glsl */ `
   attribute float aSeed;
@@ -33,19 +35,27 @@ const vertexShader = /* glsl */ `
   varying float vTemporal;
   varying float vOccipital;
   varying float vCerebellum;
+  varying float vScatter;
 
   void main() {
     vColor = aColor;
     vLayer = aLayer;
+    vScatter = uScatter;
     // Soft pulse / twinkle (Step 9 motion polish)
     float twinkle =
       0.86 +
       0.14 * sin(uTime * (1.35 + aPhase * 1.7) + aSeed * 6.2831) +
       0.06 * sin(uTime * (2.8 + aSeed * 1.2) + aPhase * 9.0);
     vec3 dir = normalize(position + vec3(0.0008));
-    // P1 · wider Release constellation (living web, not a tight puff)
-    vec3 scattered = position + dir * (aSeed * 7.4 + aPhase * 3.6 + 1.6);
-    vec3 mixed = mix(position, scattered, uScatter);
+    // Release · full silhouette break — random field, no radial brain puff
+    vec3 randDir = normalize(vec3(
+      aSeed * 2.0 - 1.0,
+      aPhase * 2.0 - 1.0,
+      fract(aSeed * 5.73 + aPhase * 3.11) * 2.0 - 1.0
+    ));
+    float reach = 4.5 + aSeed * 14.0 + aPhase * 9.0;
+    vec3 constellation = randDir * reach;
+    vec3 mixed = mix(position, constellation, uScatter);
 
     mixed += dir * sin(uTime * 0.45 + aSeed * 9.0) * 0.012 * (1.0 - uScatter);
     mixed += dir * sin(uTime * 3.4 + aSeed * 20.0) * 0.01 * uPulse;
@@ -79,20 +89,25 @@ const vertexShader = /* glsl */ `
     mixed += dir * vCerebellum * 0.045;
 
     vec4 mvPosition = modelViewMatrix * vec4(mixed, 1.0);
-    // View-facing rim — denser silhouette like the Neural Monitor video
+    // View-facing rim — sharper cortex edge vs video
     vec3 viewN = normalize(-mvPosition.xyz);
-    vRim = pow(1.0 - abs(dot(normalize(mat3(modelViewMatrix) * dir), viewN)), 1.35);
+    vRim = pow(1.0 - abs(dot(normalize(mat3(modelViewMatrix) * dir), viewN)), 1.2);
 
-    // P0 · smaller points = denser fold read (not a soft white cloud)
-    float size = aSize * (1.15 + aSeed * 0.5) * (1.0 + uGlow * 0.1) * twinkle;
-    size *= (1.0 + aLayer * 0.22 + vRim * 0.32 + vTemporal * 0.3 + vOccipital * 0.35 + vCerebellum * 0.42);
+    // Sharp shell read — small dense dots, rim brighter than interior
+    float size = aSize * (0.88 + aSeed * 0.28) * (1.0 + uGlow * 0.08) * twinkle;
+    size *= (1.0 + aLayer * 0.08 + vRim * 0.75 + vTemporal * 0.28 + vOccipital * 0.32 + vCerebellum * 0.38);
+    size *= mix(1.0, 0.28 + aSeed * 0.4, uScatter);
     size *= (265.0 / max(0.5, -mvPosition.z));
-    gl_PointSize = clamp(size, 0.9, 6.2);
+    gl_PointSize = clamp(size, 0.65, 3.6);
     gl_Position = projectionMatrix * mvPosition;
-    vAlpha = mix(0.52, 0.78, aSeed) * twinkle * mix(1.0, 0.18, aLayer);
+    // Soft luminous field — calm open, still a readable cortex
+    vAlpha = mix(0.62, 0.92, aSeed) * twinkle * mix(1.0, 0.32, aLayer);
     vAlpha *= mix(1.0, 1.22, vTemporal);
     vAlpha *= mix(1.0, 1.28, vOccipital);
     vAlpha *= mix(1.0, 1.32, vCerebellum);
+    // Sparse starfield on Release — keep ~25% of points as bright stars
+    float keep = smoothstep(uScatter * 0.68, uScatter * 0.68 + 0.08, aSeed);
+    vAlpha *= mix(1.0, keep * (0.45 + aSeed * 0.4), uScatter);
   }
 `;
 
@@ -104,28 +119,32 @@ const fragmentShader = /* glsl */ `
   varying float vTemporal;
   varying float vOccipital;
   varying float vCerebellum;
+  varying float vScatter;
   uniform float uGlow;
 
   void main() {
     vec2 uv = gl_PointCoord - vec2(0.5);
     float d = length(uv);
     if (d > 0.5) discard;
+    // Release: drop most points so additive bloom can't rebuild a solid brain
+    if (vScatter > 0.55 && vAlpha < 0.08) discard;
 
-    float soft = smoothstep(0.5, 0.12, d);
-    float core = smoothstep(0.14, 0.0, d);
+    // Soft luminous sprites — Neural Monitor open, not harsh medical wire
+    float soft = smoothstep(0.5, 0.14, d);
+    float core = smoothstep(0.16, 0.0, d);
 
-    // Soft electric cyan — rim lift, hard-cap so additive never washes white
-    vec3 col = vColor * (0.68 + uGlow * 0.14);
-    col += vColor * core * 0.1;
-    col += vec3(0.05, 0.58, 0.98) * vRim * 0.34;
-    col += vec3(0.12, 0.72, 1.0) * vTemporal * 0.32;
-    col += vec3(0.16, 0.68, 1.0) * vOccipital * 0.36;
-    col += vec3(0.2, 0.8, 1.0) * vCerebellum * 0.4;
-    col.r = min(col.r, 0.22);
-    col.g = min(col.g, 0.78);
+    vec3 col = vColor * (0.92 + uGlow * 0.1);
+    col += vColor * core * 0.14;
+    col += vec3(0.05, 0.75, 1.0) * vRim * 0.5;
+    col += vec3(0.12, 0.72, 1.0) * vTemporal * 0.28;
+    col += vec3(0.16, 0.68, 1.0) * vOccipital * 0.32;
+    col += vec3(0.2, 0.8, 1.0) * vCerebellum * 0.36;
+    col.r = min(col.r, 0.2);
+    col.g = min(col.g, 0.92);
     col.b = min(col.b, 1.0);
 
-    float alpha = soft * vAlpha * (0.7 + uGlow * 0.06 + vRim * 0.12 + vTemporal * 0.1 + vOccipital * 0.12 + vCerebellum * 0.14);
+    float alpha = soft * vAlpha * (0.76 + uGlow * 0.04 + vRim * 0.12 + vTemporal * 0.08 + vOccipital * 0.1 + vCerebellum * 0.12);
+    alpha = min(alpha, 0.56);
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -177,23 +196,41 @@ function thinBuffers(data: BrainBuffers, ratio: number): BrainBuffers {
   return polishBrainBuffers({ positions, colors, sizes, seeds, count });
 }
 
-/** P0 · denser cyan shell on baked anatomical points (runtime, no re-bake). */
+/**
+ * Color/size polish only — never displace baked anatomical positions.
+ * Push shell contrast so the brain reads clearly on open (not a soft glow blob).
+ */
 function polishBrainBuffers(data: BrainBuffers): BrainBuffers {
   const { count, positions, colors, sizes, seeds } = data;
   for (let i = 0; i < count; i += 1) {
     const layer = seeds[i * 4 + 3];
     const c = i * 3;
-    colors[c] = Math.min(colors[c] * 0.72, 0.22);
-    colors[c + 1] = Math.min(colors[c + 1] * 1.06, 0.82);
-    colors[c + 2] = Math.min(colors[c + 2] * 1.1, 1);
-    sizes[i] *= layer < 0.5 ? 0.82 : 0.92;
+    const x = positions[c];
+    const y = positions[c + 1];
+    const z = positions[c + 2];
+    const radius = Math.hypot(x, y, z);
+    const rim = THREE.MathUtils.clamp(radius / 0.85, 0, 1);
+    const ridge = Math.abs(Math.sin(x * 18 + z * 14 + y * 11));
+    if (layer < 0.5) {
+      colors[c] = Math.min(0.2, 0.05 + rim * 0.09);
+      colors[c + 1] = Math.min(0.95, 0.5 + rim * 0.38 + ridge * 0.12);
+      colors[c + 2] = Math.min(1, 0.78 + rim * 0.22);
+      sizes[i] *= 0.78 + rim * 0.28 + ridge * 0.1;
+    } else {
+      // Soft interior fill — body reads solid like the video, not a hollow rim
+      colors[c] *= 0.55;
+      colors[c + 1] *= 0.7;
+      colors[c + 2] *= 0.82;
+      sizes[i] *= 0.7;
+    }
   }
   return { positions, colors, sizes, seeds, count };
 }
 
-export function BrainCloud({ particleCount = 160000 }: Props) {
+export function BrainCloud({ particleCount = 200000 }: Props) {
   const group = useRef<THREE.Group>(null);
-  const basePos = useRef(new THREE.Vector3(0.7, 0.02, 0));
+  const material = useRef<THREE.ShaderMaterial>(null);
+  const basePos = useRef(BRAIN_ORIGIN.clone());
 
   const [buffers, setBuffers] = useState<BrainBuffers>(() => {
     if (typeof window === "undefined") {
@@ -229,7 +266,7 @@ export function BrainCloud({ particleCount = 160000 }: Props) {
     () => ({
       uTime: { value: 0 },
       uScatter: { value: 0 },
-      uGlow: { value: 0.95 },
+      uGlow: { value: 0.78 },
       uPulse: { value: 0 },
       uHighlight: { value: 0 },
       uTemporal: { value: 0 },
@@ -243,45 +280,64 @@ export function BrainCloud({ particleCount = 160000 }: Props) {
     const { progress, reducedMotion } = getScrollState();
     const motion = sampleBrainMotion(progress);
     const idle = getScrollIdle();
-    uniforms.uTime.value += reducedMotion ? delta * 0.2 : delta;
-    uniforms.uScatter.value = THREE.MathUtils.damp(
-      uniforms.uScatter.value,
-      Math.max(motion.scatter, motion.network * 0.48),
-      3.2,
-      delta
-    );
-    uniforms.uGlow.value = THREE.MathUtils.damp(
-      uniforms.uGlow.value,
+    const matUniforms = material.current?.uniforms ?? uniforms;
+    const scatterTarget = Math.max(motion.scatter, motion.network * 0.32);
+
+    matUniforms.uTime.value += reducedMotion ? delta * 0.2 : delta;
+    // Snap near end so scrub lag can't leave a solid brain on Release
+    if (motion.scatter > 0.85) {
+      matUniforms.uScatter.value = THREE.MathUtils.damp(
+        matUniforms.uScatter.value,
+        scatterTarget,
+        12,
+        delta
+      );
+      if (matUniforms.uScatter.value < scatterTarget - 0.02) {
+        matUniforms.uScatter.value = Math.min(
+          scatterTarget,
+          matUniforms.uScatter.value + delta * 2.5
+        );
+      }
+    } else {
+      matUniforms.uScatter.value = THREE.MathUtils.damp(
+        matUniforms.uScatter.value,
+        scatterTarget,
+        scatterTarget > 0.2 ? 5.5 : 3.2,
+        delta
+      );
+    }
+    matUniforms.uGlow.value = THREE.MathUtils.damp(
+      matUniforms.uGlow.value,
       motion.glow + idle * 0.04,
       3,
       delta
     );
-    uniforms.uPulse.value = THREE.MathUtils.damp(
-      uniforms.uPulse.value,
+    matUniforms.uPulse.value = THREE.MathUtils.damp(
+      matUniforms.uPulse.value,
       motion.pulse,
       3.2,
       delta
     );
-    uniforms.uHighlight.value = THREE.MathUtils.damp(
-      uniforms.uHighlight.value,
+    matUniforms.uHighlight.value = THREE.MathUtils.damp(
+      matUniforms.uHighlight.value,
       motion.highlight,
       2.8,
       delta
     );
-    uniforms.uTemporal.value = THREE.MathUtils.damp(
-      uniforms.uTemporal.value,
+    matUniforms.uTemporal.value = THREE.MathUtils.damp(
+      matUniforms.uTemporal.value,
       motion.temporal,
       2.6,
       delta
     );
-    uniforms.uOccipital.value = THREE.MathUtils.damp(
-      uniforms.uOccipital.value,
+    matUniforms.uOccipital.value = THREE.MathUtils.damp(
+      matUniforms.uOccipital.value,
       motion.occipital,
       2.6,
       delta
     );
-    uniforms.uCerebellum.value = THREE.MathUtils.damp(
-      uniforms.uCerebellum.value,
+    matUniforms.uCerebellum.value = THREE.MathUtils.damp(
+      matUniforms.uCerebellum.value,
       motion.cerebellum,
       2.6,
       delta
@@ -324,16 +380,18 @@ export function BrainCloud({ particleCount = 160000 }: Props) {
       ref={(node) => {
         group.current = node;
         if (node && node.userData.bootstrapped !== true) {
-          // Arrival hero (ref frames): face slightly left, right-of-center
-          node.rotation.set(0.2, -0.68, 0.06);
-          node.scale.setScalar(1.48);
+          node.rotation.copy(BRAIN_ARRIVAL.rotation);
+          node.scale.setScalar(BRAIN_ARRIVAL.scale);
           node.userData.bootstrapped = true;
         }
       }}
-      position={[0.7, 0.02, 0]}
+      position={BRAIN_ORIGIN.toArray() as [number, number, number]}
     >
+      {/* Anatomical under-shell — fold silhouette; particles carry electric glow */}
+      <BrainMesh />
       <points geometry={geometry} frustumCulled={false}>
         <shaderMaterial
+          ref={material}
           vertexShader={vertexShader}
           fragmentShader={fragmentShader}
           uniforms={uniforms}

@@ -6,7 +6,9 @@ function smoothstep(t: number): number {
 }
 
 /**
- * P1 · chapter copy opacity — soft land, solid hold, tight exit so next title settles clean.
+ * Chapter copy opacity.
+ * Arrival starts fully visible (no soft-land at progress 0).
+ * Soft land only applies when entering chapters after Arrival.
  * Release coda holds full opacity to the end.
  */
 export function chapterFadeOpacity(progress: number): number {
@@ -18,8 +20,12 @@ export function chapterFadeOpacity(progress: number): number {
 
   if (id === "release") return 1;
 
-  // Soft land (first ~5%), solid mid-beat, exit in last ~12%
-  if (local < 0.05) return smoothstep(local / 0.05);
+  // Soft land after a chapter boundary, solid mid-beat, tight exit.
+  // Chapter 0 has no prior chapter — keep Arrival opaque from the first frame.
+  if (local < 0.05) {
+    if (chapter === 0) return 1;
+    return smoothstep(local / 0.05);
+  }
   if (local < 0.88) return 1;
   return 1 - smoothstep((local - 0.88) / 0.12);
 }

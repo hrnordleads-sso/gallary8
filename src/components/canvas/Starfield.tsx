@@ -46,10 +46,10 @@ export function Starfield() {
           <bufferAttribute attach="attributes-position" args={[far, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          size={0.022}
+          size={0.028}
           color="#b8d9f5"
           transparent
-          opacity={0.55}
+          opacity={0.62}
           depthWrite={false}
           sizeAttenuation
           blending={THREE.AdditiveBlending}
@@ -60,10 +60,10 @@ export function Starfield() {
           <bufferAttribute attach="attributes-position" args={[near, 3]} />
         </bufferGeometry>
         <pointsMaterial
-          size={0.038}
+          size={0.055}
           color="#e0f2fe"
           transparent
-          opacity={0.4}
+          opacity={0.48}
           depthWrite={false}
           sizeAttenuation
           blending={THREE.AdditiveBlending}

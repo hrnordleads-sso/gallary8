@@ -21,7 +21,7 @@ export function ScrollController() {
       start: "top top",
       end: "bottom bottom",
       // Higher scrub = smoother video-like follow (reduced-motion stays snappy)
-      scrub: media.matches ? 0.12 : 1.15,
+      scrub: media.matches ? 0.12 : 1.05,
       invalidateOnRefresh: true,
       onUpdate: (self) => {
         setScrollProgress(self.progress, CHAPTERS.length);

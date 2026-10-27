@@ -4,11 +4,12 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { sampleBrainMotion } from "@/lib/brainGeometry";
+import { BRAIN_ORIGIN } from "@/lib/brainOrigin";
 import { getScrollState } from "@/lib/scrollStore";
 
-const NODE_COUNT = 84;
-const EDGE_COUNT = 120;
-const PULSE_COUNT = 28;
+const NODE_COUNT = 96;
+const EDGE_COUNT = 140;
+const PULSE_COUNT = 36;
 
 function hash(n: number): number {
   const x = Math.sin(n * 127.1) * 43758.5453;
@@ -31,13 +32,21 @@ export function SignalThreads() {
   const { edgePositions, nodePositions, pulseMeta } = useMemo(() => {
     const nodes = new Float32Array(NODE_COUNT * 3);
     for (let i = 0; i < NODE_COUNT; i += 1) {
-      // Prefer a flattened ellipsoid around the specimen (not a full sphere)
-      const r = 0.42 + hash(i * 1.7) * 1.55;
-      const theta = hash(i * 2.3) * Math.PI * 2;
-      const phi = Math.acos(2 * hash(i * 3.1) - 1);
-      nodes[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      nodes[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.48;
-      nodes[i * 3 + 2] = r * Math.cos(phi) * 0.62;
+      // Anatomical ellipsoid (cerebrum proportions) — not a free sphere
+      // Inspired by digin1 connectivity overlays; original sampling.
+      const u = hash(i * 1.7) * 2 - 1;
+      const v = hash(i * 2.3) * 2 - 1;
+      const w = hash(i * 3.1) * 2 - 1;
+      const len = Math.hypot(u, v, w) || 1;
+      const shell = 0.55 + hash(i * 4.1) * 0.55;
+      // Wider X (hemispheres), taller Y, longer Z (front→back)
+      nodes[i * 3] = (u / len) * shell * 0.72;
+      nodes[i * 3 + 1] = (v / len) * shell * 0.58;
+      nodes[i * 3 + 2] = (w / len) * shell * 0.88;
+      // Slight temporal drop
+      if (Math.abs(nodes[i * 3]) > 0.28 && nodes[i * 3 + 1] < 0.1) {
+        nodes[i * 3 + 1] -= 0.08 * hash(i * 5.2);
+      }
     }
 
     // Prefer short edges → denser axonal / constellation look (ref 014–016, 033)
@@ -95,19 +104,19 @@ export function SignalThreads() {
 
     // Signals: dense traffic · Links: quieter arcs · Release: wide constellation web
     const signalsStrength = Math.max(pulse * 0.95, network * 1.0);
-    const releaseStrength = scatter * 0.9;
+    const releaseStrength = scatter * 1.05;
     const linksStrength = temporal * 0.45;
     const strength = Math.max(signalsStrength, linksStrength, releaseStrength);
 
     lineMat.current.opacity = THREE.MathUtils.damp(
       lineMat.current.opacity,
-      strength * (0.22 + scatter * 0.18 + pulse * 0.12),
+      strength * (0.2 + scatter * 0.28 + pulse * 0.12),
       5.5,
       delta
     );
     nodeMat.current.opacity = THREE.MathUtils.damp(
       nodeMat.current.opacity,
-      strength * (0.5 + pulse * 0.2),
+      strength * (0.45 + pulse * 0.2 + scatter * 0.15),
       5.5,
       delta
     );
@@ -118,9 +127,9 @@ export function SignalThreads() {
       delta
     );
 
-    // Expand into open-field constellation on Release
-    const expand = 1 + network * 0.35 + scatter * 2.1;
-    const s = THREE.MathUtils.damp(group.current.scale.x, expand, 2.4, delta);
+    // Expand into open-field constellation on Release (video wide web)
+    const expand = 1 + network * 0.35 + scatter * 3.4;
+    const s = THREE.MathUtils.damp(group.current.scale.x, expand, 3.2, delta);
     group.current.scale.setScalar(s);
 
     const spin = 0.035 + pulse * 0.06 + scatter * 0.02;
@@ -155,7 +164,7 @@ export function SignalThreads() {
   });
 
   return (
-    <group ref={group} position={[0.4, 0.02, 0]}>
+    <group ref={group} position={[BRAIN_ORIGIN.x * 0.55, BRAIN_ORIGIN.y, 0]}>
       <lineSegments ref={linesRef} frustumCulled={false}>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[edgePositions, 3]} />

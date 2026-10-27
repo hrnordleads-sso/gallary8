@@ -31,11 +31,11 @@ html {
 body {
   margin: 0;
   min-height: 100%;
-  /* Deep navy void — brain sits in the right-center glow pocket */
+  /* Deep navy — luminous brain pocket center-right (text backdrop) */
   background: radial-gradient(
-    ellipse at 58% 42%,
-    #0c2748 0%,
-    #061830 32%,
+    ellipse at 62% 45%,
+    #0e2a4a 0%,
+    #071a32 34%,
     #010814 68%,
     #00040c 100%
   );
@@ -51,28 +51,10 @@ body {
   font-family: var(--font-mono), ui-monospace, monospace;
 }
 
-/* Soft holographic wash behind the point-cloud (right-of-center) — P0 softer cyan */
-.brain-glow {
-  background: radial-gradient(
-    ellipse at 62% 44%,
-    rgba(34, 211, 238, 0.1) 0%,
-    rgba(14, 165, 233, 0.055) 26%,
-    rgba(8, 47, 73, 0.03) 48%,
-    transparent 70%
-  );
-  mix-blend-mode: screen;
-}
-
 .vignette {
   background:
-    radial-gradient(
-      ellipse at 62% 44%,
-      transparent 26%,
-      rgba(1, 8, 20, 0.3) 62%,
-      rgba(0, 4, 12, 0.82) 100%
-    ),
-    linear-gradient(to top, rgba(1, 8, 20, 0.58), transparent 34%),
-    linear-gradient(to bottom, rgba(1, 8, 20, 0.3), transparent 22%);
+    linear-gradient(to top, rgba(1, 8, 20, 0.18), transparent 30%),
+    linear-gradient(to bottom, rgba(1, 8, 20, 0.08), transparent 18%);
 }
 
 .wave-bar {
@@ -112,9 +94,6 @@ body {
 @media (max-width: 640px) {
   .narrative-panel {
     margin-top: 0;
-    text-shadow:
-      0 1px 12px rgba(1, 8, 20, 0.95),
-      0 0 28px rgba(1, 8, 20, 0.75);
   }
 
   .narrative-panel h1 {

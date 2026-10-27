@@ -34,9 +34,12 @@ export function Narrative() {
         : "sm:ml-auto sm:mr-[5%] md:mr-[7%] lg:mr-[9%] sm:self-start sm:mt-[14vh] md:mt-[16vh]"
       : align === "center"
         ? "sm:mx-auto text-center"
-        : isArrival || isVision
-          ? "sm:ml-[5%] lg:ml-[6%]"
-          : "sm:ml-[4%] md:ml-[5%]";
+        : isArrival
+          ? // Hero open: copy hugs left edge so brain owns the right field (video)
+            "sm:ml-[0.5%] md:ml-[1%] lg:ml-[1.5%] xl:ml-[2%]"
+          : isVision
+            ? "sm:ml-[4%] lg:ml-[5%]"
+            : "sm:ml-[4%] md:ml-[5%]";
 
   const beginAgain = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -61,21 +64,20 @@ export function Narrative() {
   return (
     <div className={`pointer-events-none fixed inset-0 z-20 flex ${mobileStack}`}>
       <div
-        className={`narrative-panel mx-auto w-full max-w-[22rem] px-5 transition-[opacity,transform] duration-400 ease-out sm:mx-0 sm:max-w-lg sm:px-6 md:max-w-xl ${panelPos} ${
-          isArrival ||
-          isCortex ||
-          isSignals ||
-          isLinks ||
-          isVision ||
-          isBalance ||
-          isRelease
-            ? "lg:max-w-[36rem]"
-            : ""
-        } ${
-          isArrival || isRelease
-            ? "drop-shadow-[0_2px_18px_rgba(1,8,20,0.92)]"
-            : ""
-        }`}
+        className={`narrative-panel mx-auto w-full max-w-[22rem] transition-[opacity,transform] duration-400 ease-out sm:mx-0 sm:max-w-lg md:max-w-xl ${
+          isArrival ? "px-4 sm:px-5 md:px-5" : "px-5 sm:px-6"
+        } ${panelPos} ${
+          isArrival
+            ? "lg:max-w-[32rem] xl:max-w-[34rem]"
+            : isCortex ||
+                isSignals ||
+                isLinks ||
+                isVision ||
+                isBalance ||
+                isRelease
+              ? "lg:max-w-[36rem]"
+              : ""
+        } ${isRelease ? "drop-shadow-[0_2px_18px_rgba(1,8,20,0.92)]" : ""}`}
         style={{
           opacity: fade,
           transform: `translateY(${(1 - fade) * 8}px)`,
