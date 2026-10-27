@@ -8,19 +8,21 @@ import { loadBrainShell } from "@/lib/loadBrainShell";
 import { getScrollState } from "@/lib/scrollStore";
 
 /**
- * Soft anatomical under-shell — shape without harsh X-ray wires.
- * Arrival should feel luminous and calm, not like a medical specimen.
+ * Cyan lattice shell — dense fold wires + soft fill (reference wireframe cerebrum).
  */
 export function BrainMesh() {
   const fillMat = useRef<THREE.MeshBasicMaterial>(null);
   const edgeMat = useRef<THREE.LineBasicMaterial>(null);
+  const fineMat = useRef<THREE.LineBasicMaterial>(null);
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [edges, setEdges] = useState<THREE.BufferGeometry | null>(null);
+  const [fineEdges, setFineEdges] = useState<THREE.BufferGeometry | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     let geo: THREE.BufferGeometry | null = null;
     let edgeGeo: THREE.BufferGeometry | null = null;
+    let fineGeo: THREE.BufferGeometry | null = null;
     loadBrainShell()
       .then((g) => {
         if (cancelled) {
@@ -28,9 +30,12 @@ export function BrainMesh() {
           return;
         }
         geo = g;
-        edgeGeo = new THREE.EdgesGeometry(g, 22);
+        // Lower thresholds → denser sulcal lattice like the reference mesh
+        edgeGeo = new THREE.EdgesGeometry(g, 14);
+        fineGeo = new THREE.EdgesGeometry(g, 8);
         setGeometry(g);
         setEdges(edgeGeo);
+        setFineEdges(fineGeo);
       })
       .catch((err: unknown) => {
         console.error("[BrainMesh] anatomical shell load failed", err);
@@ -39,6 +44,7 @@ export function BrainMesh() {
       cancelled = true;
       geo?.dispose();
       edgeGeo?.dispose();
+      fineGeo?.dispose();
     };
   }, []);
 
@@ -47,12 +53,16 @@ export function BrainMesh() {
     const { scatter, glow, release } = sampleBrainMotion(progress);
     const dissolve = Math.max(scatter, release);
     if (fillMat.current) {
-      const target = THREE.MathUtils.lerp(0.14, 0.0, dissolve) * (0.9 + glow * 0.05);
+      const target = THREE.MathUtils.lerp(0.1, 0.0, dissolve) * (0.92 + glow * 0.06);
       fillMat.current.opacity = THREE.MathUtils.damp(fillMat.current.opacity, target, 3.2, delta);
     }
     if (edgeMat.current) {
-      const target = THREE.MathUtils.lerp(0.22, 0.0, dissolve) * (0.9 + glow * 0.04);
+      const target = THREE.MathUtils.lerp(0.48, 0.0, dissolve) * (0.92 + glow * 0.08);
       edgeMat.current.opacity = THREE.MathUtils.damp(edgeMat.current.opacity, target, 3.2, delta);
+    }
+    if (fineMat.current) {
+      const target = THREE.MathUtils.lerp(0.28, 0.0, dissolve) * (0.9 + glow * 0.06);
+      fineMat.current.opacity = THREE.MathUtils.damp(fineMat.current.opacity, target, 3.2, delta);
     }
   });
 
@@ -63,22 +73,35 @@ export function BrainMesh() {
       <mesh geometry={geometry} frustumCulled={false}>
         <meshBasicMaterial
           ref={fillMat}
-          color="#22d3ee"
+          color="#06b6d4"
           transparent
-          opacity={0.14}
+          opacity={0.1}
           depthWrite={false}
           side={THREE.DoubleSide}
           blending={THREE.AdditiveBlending}
           toneMapped={false}
         />
       </mesh>
+      {fineEdges ? (
+        <lineSegments geometry={fineEdges} frustumCulled={false}>
+          <lineBasicMaterial
+            ref={fineMat}
+            color="#22d3ee"
+            transparent
+            opacity={0.28}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </lineSegments>
+      ) : null}
       {edges ? (
         <lineSegments geometry={edges} frustumCulled={false}>
           <lineBasicMaterial
             ref={edgeMat}
             color="#67e8f9"
             transparent
-            opacity={0.22}
+            opacity={0.48}
             depthWrite={false}
             blending={THREE.AdditiveBlending}
             toneMapped={false}

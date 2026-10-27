@@ -2,16 +2,16 @@ import * as THREE from "three";
 import { getClientTier } from "@/lib/deviceProfile";
 
 /**
- * Hero open: brain on the right — soft luminous field, not a specimen slab.
+ * Hero open: brain on the right — cyan lattice cerebrum field.
  */
 export const BRAIN_ORIGIN = new THREE.Vector3(1.4, -0.02, 0);
 
 /**
- * Arrival — gentle 3/4 (less stark lateral “autopsy” read), still clearly a brain.
+ * Arrival — dorsal / slight 3⁄4 so the longitudinal fissure reads like the reference.
  */
 export const BRAIN_ARRIVAL = {
-  rotation: new THREE.Euler(0.06, -0.42, 0.02),
-  scale: 1.48,
+  rotation: new THREE.Euler(0.48, -0.22, 0.04),
+  scale: 1.52,
 } as const;
 
 export type BrainLayout = {

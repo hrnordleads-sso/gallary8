@@ -18,10 +18,11 @@ function Scene({ showThreads }: { showThreads: boolean }) {
   return (
     <>
       <color attach="background" args={["#010814"]} />
-      <fog attach="fog" args={["#010814", 15, 42]} />
-      <ambientLight intensity={0.16} />
-      <pointLight position={[2.4, 1.5, 3]} intensity={1.0} color="#67e8f9" distance={16} />
-      <pointLight position={[-1.8, -0.3, 2.2]} intensity={0.45} color="#40e0d0" distance={12} />
+      <fog attach="fog" args={["#010814", 16, 44]} />
+      <ambientLight intensity={0.14} />
+      <pointLight position={[2.4, 1.5, 3]} intensity={1.25} color="#67e8f9" distance={16} />
+      <pointLight position={[-1.8, -0.3, 2.2]} intensity={0.55} color="#22d3ee" distance={12} />
+      <pointLight position={[0.2, 2.2, 1.2]} intensity={0.35} color="#a5f3fc" distance={10} />
       <Starfield />
       <BrainCloud />
       {showThreads ? <SignalThreads /> : null}
@@ -75,7 +76,7 @@ export function Experience() {
           alpha: false,
           powerPreference: "high-performance",
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 0.84,
+          toneMappingExposure: 0.92,
           outputColorSpace: THREE.SRGBColorSpace,
         }}
         camera={{

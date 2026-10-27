@@ -96,15 +96,15 @@ const vertexShader = /* glsl */ `
     vec3 viewN = normalize(-mvPosition.xyz);
     vRim = pow(1.0 - abs(dot(normalize(mat3(modelViewMatrix) * dir), viewN)), 1.2);
 
-    // Sharp shell read — small dense dots, rim brighter than interior
-    float size = aSize * (0.88 + aSeed * 0.28) * (1.0 + uGlow * 0.08) * twinkle;
-    size *= (1.0 + aLayer * 0.08 + vRim * 0.75 + vTemporal * 0.28 + vOccipital * 0.32 + vCerebellum * 0.38);
+    // Dense lattice dots — small, rim-bright (wireframe cerebrum read)
+    float size = aSize * (0.72 + aSeed * 0.22) * (1.0 + uGlow * 0.1) * twinkle;
+    size *= (1.0 + aLayer * 0.06 + vRim * 0.95 + vTemporal * 0.28 + vOccipital * 0.32 + vCerebellum * 0.38);
     size *= mix(1.0, 0.28 + aSeed * 0.4, uScatter);
-    size *= (265.0 / max(0.5, -mvPosition.z));
-    gl_PointSize = clamp(size, 0.65, 3.6);
+    size *= (280.0 / max(0.5, -mvPosition.z));
+    gl_PointSize = clamp(size, 0.55, 3.2);
     gl_Position = projectionMatrix * mvPosition;
-    // Soft luminous field — calm open, still a readable cortex
-    vAlpha = mix(0.62, 0.92, aSeed) * twinkle * mix(1.0, 0.32, aLayer);
+    // Bright cyan field — interior quieter so mesh wires carry the silhouette
+    vAlpha = mix(0.55, 0.98, aSeed) * twinkle * mix(1.0, 0.26, aLayer);
     vAlpha *= mix(1.0, 1.22, vTemporal);
     vAlpha *= mix(1.0, 1.28, vOccipital);
     vAlpha *= mix(1.0, 1.32, vCerebellum);
@@ -132,22 +132,22 @@ const fragmentShader = /* glsl */ `
     // Release: drop most points so additive bloom can't rebuild a solid brain
     if (vScatter > 0.55 && vAlpha < 0.08) discard;
 
-    // Soft luminous sprites — Neural Monitor open, not harsh medical wire
-    float soft = smoothstep(0.5, 0.14, d);
-    float core = smoothstep(0.16, 0.0, d);
+    // Tight cyan sprites — lattice sparkle over fold wires
+    float soft = smoothstep(0.48, 0.08, d);
+    float core = smoothstep(0.12, 0.0, d);
 
-    vec3 col = vColor * (0.92 + uGlow * 0.1);
-    col += vColor * core * 0.14;
-    col += vec3(0.05, 0.75, 1.0) * vRim * 0.5;
-    col += vec3(0.12, 0.72, 1.0) * vTemporal * 0.28;
-    col += vec3(0.16, 0.68, 1.0) * vOccipital * 0.32;
-    col += vec3(0.2, 0.8, 1.0) * vCerebellum * 0.36;
-    col.r = min(col.r, 0.2);
-    col.g = min(col.g, 0.92);
+    vec3 col = vColor * (1.0 + uGlow * 0.14);
+    col += vColor * core * 0.28;
+    col += vec3(0.0, 0.85, 1.0) * vRim * 0.72;
+    col += vec3(0.08, 0.78, 1.0) * vTemporal * 0.3;
+    col += vec3(0.1, 0.72, 1.0) * vOccipital * 0.34;
+    col += vec3(0.14, 0.86, 1.0) * vCerebellum * 0.38;
+    col.r = min(col.r, 0.16);
+    col.g = min(col.g, 0.98);
     col.b = min(col.b, 1.0);
 
-    float alpha = soft * vAlpha * (0.76 + uGlow * 0.04 + vRim * 0.12 + vTemporal * 0.08 + vOccipital * 0.1 + vCerebellum * 0.12);
-    alpha = min(alpha, 0.56);
+    float alpha = soft * vAlpha * (0.82 + uGlow * 0.06 + vRim * 0.18 + vTemporal * 0.08 + vOccipital * 0.1 + vCerebellum * 0.12);
+    alpha = min(alpha, 0.62);
     gl_FragColor = vec4(col, alpha);
   }
 `;
@@ -215,16 +215,17 @@ function polishBrainBuffers(data: BrainBuffers): BrainBuffers {
     const rim = THREE.MathUtils.clamp(radius / 0.85, 0, 1);
     const ridge = Math.abs(Math.sin(x * 18 + z * 14 + y * 11));
     if (layer < 0.5) {
-      colors[c] = Math.min(0.2, 0.05 + rim * 0.09);
-      colors[c + 1] = Math.min(0.95, 0.5 + rim * 0.38 + ridge * 0.12);
-      colors[c + 2] = Math.min(1, 0.78 + rim * 0.22);
-      sizes[i] *= 0.78 + rim * 0.28 + ridge * 0.1;
+      // Hot cyan rim / sulcus highlights (reference lattice glow)
+      colors[c] = Math.min(0.14, 0.02 + rim * 0.08);
+      colors[c + 1] = Math.min(0.98, 0.55 + rim * 0.4 + ridge * 0.16);
+      colors[c + 2] = Math.min(1, 0.82 + rim * 0.18);
+      sizes[i] *= 0.7 + rim * 0.32 + ridge * 0.14;
     } else {
-      // Soft interior fill — body reads solid like the video, not a hollow rim
-      colors[c] *= 0.55;
-      colors[c + 1] *= 0.7;
-      colors[c + 2] *= 0.82;
-      sizes[i] *= 0.7;
+      // Quiet interior so wireframe + rim points dominate
+      colors[c] *= 0.4;
+      colors[c + 1] *= 0.62;
+      colors[c + 2] *= 0.78;
+      sizes[i] *= 0.58;
     }
   }
   return { positions, colors, sizes, seeds, count };
