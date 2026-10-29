@@ -33,6 +33,11 @@ function parseShellBin(buf: ArrayBuffer): THREE.BufferGeometry {
   return geo;
 }
 
+/** Drop cached shell so a scene retry can re-fetch. */
+export function clearBrainShellCache(): void {
+  cache = null;
+}
+
 /** Load decimated anatomical shell (same space as brain-points.bin). Cached. */
 export function loadBrainShell(): Promise<THREE.BufferGeometry> {
   if (cache) return cache;

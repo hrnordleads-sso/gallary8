@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { sampleBrainMotion } from "@/lib/brainGeometry";
 import { BRAIN_ORIGIN } from "@/lib/brainOrigin";
+import { getSceneElapsed } from "@/lib/sceneTime";
 import { getScrollState } from "@/lib/scrollStore";
 
 const NODE_COUNT = 96;
@@ -87,7 +88,7 @@ export function SignalThreads() {
 
   const pulsePositions = useMemo(() => new Float32Array(PULSE_COUNT * 3), []);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     const { progress } = getScrollState();
     const { pulse, network, temporal, scatter } = sampleBrainMotion(progress);
     if (
@@ -133,16 +134,17 @@ export function SignalThreads() {
     group.current.scale.setScalar(s);
 
     const spin = 0.035 + pulse * 0.06 + scatter * 0.02;
-    linesRef.current.rotation.y = state.clock.elapsedTime * spin;
-    nodesRef.current.rotation.y = state.clock.elapsedTime * spin;
-    pulsesRef.current.rotation.y = state.clock.elapsedTime * spin;
-    const tilt = Math.sin(state.clock.elapsedTime * 0.22) * (0.05 + pulse * 0.04);
+    const et = getSceneElapsed();
+    linesRef.current.rotation.y = et * spin;
+    nodesRef.current.rotation.y = et * spin;
+    pulsesRef.current.rotation.y = et * spin;
+    const tilt = Math.sin(et * 0.22) * (0.05 + pulse * 0.04);
     linesRef.current.rotation.x = tilt;
     nodesRef.current.rotation.x = tilt;
     pulsesRef.current.rotation.x = tilt;
 
     // Traveling axonal pulses along edges (Signals beat)
-    const t = state.clock.elapsedTime;
+    const t = et;
     for (let i = 0; i < PULSE_COUNT; i += 1) {
       const meta = pulseMeta[i];
       const o = meta.edge * 6;

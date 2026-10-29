@@ -26,11 +26,12 @@ export type BrainLayout = {
 export function getBrainLayout(): BrainLayout {
   const tier = getClientTier();
   if (tier === "phone") {
+    // B1 · G8-01 — keep cerebrum in lower field so upper copy stays clear
     return {
-      origin: new THREE.Vector3(0.15, -0.42, 0),
-      scale: 1.18,
-      cameraPos: new THREE.Vector3(0.05, 0.12, 4.35),
-      lookAt: new THREE.Vector3(0.12, -0.28, 0),
+      origin: new THREE.Vector3(0.12, -0.58, 0),
+      scale: 1.08,
+      cameraPos: new THREE.Vector3(0.04, 0.18, 4.45),
+      lookAt: new THREE.Vector3(0.1, -0.4, 0),
       fov: 42,
     };
   }

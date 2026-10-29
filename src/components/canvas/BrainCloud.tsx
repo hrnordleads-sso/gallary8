@@ -9,8 +9,14 @@ import {
   type BrainBuffers,
 } from "@/lib/brainGeometry";
 import { BRAIN_ARRIVAL, getBrainLayout } from "@/lib/brainOrigin";
-import { brainKeepRatio, useLiteBrainPoints } from "@/lib/deviceProfile";
+import {
+  setBrainLoadError,
+  setBrainLoadLoading,
+  setBrainLoadReady,
+} from "@/lib/brainLoadStore";
+import { brainKeepRatioForLoaded } from "@/lib/deviceProfile";
 import { loadBrainPoints, prefetchBrainAssets } from "@/lib/loadBrainPoints";
+import { getSceneElapsed } from "@/lib/sceneTime";
 import { getScrollIdle, getScrollState } from "@/lib/scrollStore";
 import { BrainMesh } from "./BrainMesh";
 
@@ -154,6 +160,8 @@ const fragmentShader = /* glsl */ `
 
 type Props = {
   particleCount?: number;
+  /** B4 · remount/reload token from brainLoadStore */
+  reloadToken?: number;
 };
 
 function buffersToGeometry(buffers: BrainBuffers) {
@@ -231,7 +239,7 @@ function polishBrainBuffers(data: BrainBuffers): BrainBuffers {
   return { positions, colors, sizes, seeds, count };
 }
 
-export function BrainCloud({ particleCount = 200000 }: Props) {
+export function BrainCloud({ particleCount = 200000, reloadToken = 0 }: Props) {
   const group = useRef<THREE.Group>(null);
   const material = useRef<THREE.ShaderMaterial>(null);
   const layout = useRef(getBrainLayout());
@@ -244,28 +252,51 @@ export function BrainCloud({ particleCount = 200000 }: Props) {
 
   useEffect(() => {
     prefetchBrainAssets();
+    setBrainLoadLoading();
     let cancelled = false;
     loadBrainPoints()
-      .then((data) => {
+      .then(({ buffers: data, source }) => {
         if (cancelled) return;
-        const keep = useLiteBrainPoints() ? 1 : brainKeepRatio();
+        // B2/B5 — thin after bin load; full-bin mobile fallback capped ~40k
+        const keep = brainKeepRatioForLoaded(source, data.count);
         const next =
           keep < 0.99 ? thinBuffers(data, keep) : polishBrainBuffers(data);
+        if (process.env.NODE_ENV !== "production") {
+          (
+            window as Window & {
+              __G8_BRAIN_LAST_LOAD?: {
+                source: "lite" | "full";
+                keep: number;
+                count: number;
+              };
+            }
+          ).__G8_BRAIN_LAST_LOAD = {
+            source,
+            keep,
+            count: next.count,
+          };
+        }
         // Defer geometry swap one frame so first paint stays smooth
         requestAnimationFrame(() => {
-          if (!cancelled) setBuffers(next);
+          if (cancelled) return;
+          setBuffers(next);
+          setBrainLoadReady(source);
         });
       })
       .catch((err: unknown) => {
-        console.error("[BrainCloud] anatomical load failed — keeping placeholder", err);
-        if (!cancelled) {
-          setBuffers(createBrainCloud(Math.min(particleCount, 48000)));
-        }
+        console.error("[BrainCloud] anatomical load failed", err);
+        if (cancelled) return;
+        // Do not claim ready — keep sparse placeholder under the error overlay only
+        setBuffers(createBrainCloud(Math.min(particleCount, 12000)));
+        const detail = err instanceof Error ? err.message : "Unknown asset error";
+        setBrainLoadError(
+          `Neural field assets failed to load. ${detail}`
+        );
       });
     return () => {
       cancelled = true;
     };
-  }, [particleCount]);
+  }, [particleCount, reloadToken]);
 
   const geometry = useMemo(() => buffersToGeometry(buffers), [buffers]);
 
@@ -283,7 +314,7 @@ export function BrainCloud({ particleCount = 200000 }: Props) {
     []
   );
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     const { progress, reducedMotion } = getScrollState();
     const motion = sampleBrainMotion(progress);
     const idle = getScrollIdle();
@@ -351,7 +382,7 @@ export function BrainCloud({ particleCount = 200000 }: Props) {
     );
 
     if (group.current) {
-      const t = state.clock.elapsedTime;
+      const t = getSceneElapsed();
       layout.current = getBrainLayout();
       basePos.current.copy(layout.current.origin);
       baseScale.current = layout.current.scale;
@@ -398,7 +429,7 @@ export function BrainCloud({ particleCount = 200000 }: Props) {
       position={getBrainLayout().origin.toArray() as [number, number, number]}
     >
       {/* Anatomical under-shell — fold silhouette; particles carry electric glow */}
-      <BrainMesh />
+      <BrainMesh reloadToken={reloadToken} />
       <points geometry={geometry} frustumCulled={false}>
         <shaderMaterial
           ref={material}

@@ -15,10 +15,16 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "Neural Monitor | Immersive Brain Field",
   description:
     "A cinematic scroll-driven 3D neural field — point-cloud cerebrum, starlit void, and synchronized storytelling.",
+  // Prefer public/favicon.ico so static export + GitHub Pages resolve under basePath
+  icons: {
+    icon: [{ url: `${basePath}/favicon.ico`, type: "image/x-icon" }],
+  },
 };
 
 export const viewport: Viewport = {

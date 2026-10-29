@@ -4,7 +4,12 @@ import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, AdaptiveEvents, Preload } from "@react-three/drei";
 import { Suspense, useEffect, useState } from "react";
 import * as THREE from "three";
-import { canvasDprMax, isConstrainedClient } from "@/lib/deviceProfile";
+import {
+  canvasDprMax,
+  isConstrainedClient,
+  isMobilePerfBand,
+  enableSignalThreads,
+} from "@/lib/deviceProfile";
 import { getBrainLayout } from "@/lib/brainOrigin";
 import { prefetchBrainAssets } from "@/lib/loadBrainPoints";
 import { BrainCloud } from "./BrainCloud";
@@ -13,18 +18,36 @@ import { ScanBeam } from "./ScanBeam";
 import { SignalThreads } from "./SignalThreads";
 import { CameraRig } from "./CameraRig";
 import { PostFX } from "./PostFX";
+import { TimerClockBridge } from "./TimerClockBridge";
 
-function Scene({ showThreads }: { showThreads: boolean }) {
+function Scene({
+  showThreads,
+  mobileLights,
+  reloadToken,
+}: {
+  showThreads: boolean;
+  mobileLights: boolean;
+  reloadToken: number;
+}) {
   return (
     <>
       <color attach="background" args={["#010814"]} />
       <fog attach="fog" args={["#010814", 16, 44]} />
-      <ambientLight intensity={0.14} />
-      <pointLight position={[2.4, 1.5, 3]} intensity={1.25} color="#67e8f9" distance={16} />
-      <pointLight position={[-1.8, -0.3, 2.2]} intensity={0.55} color="#22d3ee" distance={12} />
-      <pointLight position={[0.2, 2.2, 1.2]} intensity={0.35} color="#a5f3fc" distance={10} />
+      <ambientLight intensity={mobileLights ? 0.18 : 0.14} />
+      <pointLight
+        position={[2.4, 1.5, 3]}
+        intensity={mobileLights ? 1.05 : 1.25}
+        color="#67e8f9"
+        distance={16}
+      />
+      {!mobileLights ? (
+        <>
+          <pointLight position={[-1.8, -0.3, 2.2]} intensity={0.55} color="#22d3ee" distance={12} />
+          <pointLight position={[0.2, 2.2, 1.2]} intensity={0.35} color="#a5f3fc" distance={10} />
+        </>
+      ) : null}
       <Starfield />
-      <BrainCloud />
+      <BrainCloud reloadToken={reloadToken} />
       {showThreads ? <SignalThreads /> : null}
       <ScanBeam />
       <CameraRig />
@@ -36,11 +59,16 @@ function Scene({ showThreads }: { showThreads: boolean }) {
   );
 }
 
-export function Experience() {
+type ExperienceProps = {
+  reloadToken?: number;
+};
+
+export function Experience({ reloadToken = 0 }: ExperienceProps) {
   const [profile, setProfile] = useState({
     dprMax: 1.5,
     antialias: true,
     showThreads: true,
+    mobileLights: false,
     fov: 38,
     cam: [-0.3, 0.08, 3.8] as [number, number, number],
   });
@@ -49,11 +77,13 @@ export function Experience() {
     prefetchBrainAssets();
     const apply = () => {
       const constrained = isConstrainedClient();
+      const mobile = isMobilePerfBand();
       const layout = getBrainLayout();
       setProfile({
         dprMax: canvasDprMax(),
-        antialias: !constrained,
-        showThreads: !constrained,
+        antialias: !constrained && !mobile,
+        showThreads: enableSignalThreads(),
+        mobileLights: mobile || constrained,
         fov: layout.fov,
         cam: layout.cameraPos.toArray() as [number, number, number],
       });
@@ -86,8 +116,13 @@ export function Experience() {
           far: 60,
         }}
       >
+        <TimerClockBridge />
         <Suspense fallback={null}>
-          <Scene showThreads={profile.showThreads} />
+          <Scene
+            showThreads={profile.showThreads}
+            mobileLights={profile.mobileLights}
+            reloadToken={reloadToken}
+          />
         </Suspense>
         <AdaptiveDpr pixelated />
         <AdaptiveEvents />

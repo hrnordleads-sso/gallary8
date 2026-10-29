@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { sampleCamera } from "@/lib/brainGeometry";
 import { getBrainLayout } from "@/lib/brainOrigin";
+import { getSceneElapsed } from "@/lib/sceneTime";
 import { getScrollIdle, getScrollState } from "@/lib/scrollStore";
 
 /** Silkier camera follow + idle micro-orbit when scroll is still (P3). */
@@ -44,7 +45,7 @@ export function CameraRig() {
     target.y += pointer.current.y * parallax * 0.55;
 
     // Soft idle drift — alive when the viewer pauses on a beat
-    const t = state.clock.elapsedTime;
+    const t = getSceneElapsed();
     target.x += Math.sin(t * 0.22) * 0.028 * idle;
     target.y += Math.cos(t * 0.19) * 0.016 * idle;
 

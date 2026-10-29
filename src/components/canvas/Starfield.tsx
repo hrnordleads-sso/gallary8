@@ -14,6 +14,7 @@ export function Starfield() {
   const farRef = useRef<THREE.Points>(null);
   const nearRef = useRef<THREE.Points>(null);
 
+  // B2 · density from deviceProfile (captured at mount; Canvas remounts on tier change via parent)
   const far = useMemo(() => {
     const s = starfieldScale();
     return scatter(Math.floor(FAR * s), 8, 36, 0.7);

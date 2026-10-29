@@ -7,6 +7,7 @@
     "build": "next build",
     "build:pages": "cross-env GITHUB_PAGES=true next build",
     "bake:brain": "node scripts/bake-brain-points.mjs && node scripts/export-brain-shell.mjs && node scripts/export-brain-points-lite.mjs",
+    "postinstall": "node scripts/patch-three-clock.mjs",
     "start": "next start",
     "lint": "eslint"
   },

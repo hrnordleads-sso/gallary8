@@ -1,10 +1,12 @@
 import type { BrainBuffers } from "@/lib/brainGeometry";
 import { orientBrainPositions } from "@/lib/brainSpace";
-import { useLiteBrainPoints } from "@/lib/deviceProfile";
+import { preferLiteBrainPoints } from "@/lib/deviceProfile";
 
 const MAGIC = 0xb17a1001;
 
-type CacheKey = "full" | "lite";
+export type BrainPointsSource = "lite" | "full";
+
+type CacheKey = BrainPointsSource;
 const cache = new Map<CacheKey, Promise<BrainBuffers>>();
 
 function basePath(): string {
@@ -56,7 +58,53 @@ function parseBrainBin(buf: ArrayBuffer): BrainBuffers {
   };
 }
 
+type ForceBrainMode =
+  | "slow"
+  | "fail-full"
+  | "fail-lite"
+  | "fail-both"
+  | "fail-once";
+
+/** Dev/QA only — set `window.__G8_FORCE_BRAIN_ASSETS` before load/retry. */
+function getForceBrainMode(): ForceBrainMode | null {
+  if (process.env.NODE_ENV === "production") return null;
+  if (typeof window === "undefined") return null;
+  const mode = (window as Window & { __G8_FORCE_BRAIN_ASSETS?: string })
+    .__G8_FORCE_BRAIN_ASSETS;
+  if (
+    mode === "slow" ||
+    mode === "fail-full" ||
+    mode === "fail-lite" ||
+    mode === "fail-both" ||
+    mode === "fail-once"
+  ) {
+    return mode;
+  }
+  return null;
+}
+
 async function fetchBrainBin(file: string): Promise<BrainBuffers> {
+  const force = getForceBrainMode();
+  if (force === "slow") {
+    await new Promise((r) => setTimeout(r, 2400));
+  }
+  if (force === "fail-both") {
+    throw new Error(`Forced failure for ${file}`);
+  }
+  if (force === "fail-lite" && file.includes("lite")) {
+    throw new Error(`Forced lite failure for ${file}`);
+  }
+  if (force === "fail-full" && file === "brain-points.bin") {
+    throw new Error(`Forced full failure for ${file}`);
+  }
+  if (force === "fail-once") {
+    const w = window as Window & { __G8_BRAIN_FAIL_ONCE_DONE?: boolean };
+    if (!w.__G8_BRAIN_FAIL_ONCE_DONE) {
+      w.__G8_BRAIN_FAIL_ONCE_DONE = true;
+      throw new Error(`Forced transient failure for ${file}`);
+    }
+  }
+
   const urls = candidateUrls(file);
   let lastError: unknown = null;
 
@@ -78,10 +126,34 @@ async function fetchBrainBin(file: string): Promise<BrainBuffers> {
     : new Error(`Failed to load ${file}`);
 }
 
-/** Prefetch both assets as early as possible (call from layout / experience mount). */
+function fileForKey(key: CacheKey): string {
+  return key === "lite" ? "brain-points-lite.bin" : "brain-points.bin";
+}
+
+async function loadKey(key: CacheKey): Promise<BrainBuffers> {
+  const existing = cache.get(key);
+  if (existing) return existing;
+
+  const pending = fetchBrainBin(fileForKey(key)).catch((err: unknown) => {
+    cache.delete(key);
+    throw err;
+  });
+  cache.set(key, pending);
+  return pending;
+}
+
+/** Drop cached point clouds so a retry can re-fetch. */
+export function clearBrainPointsCache(): void {
+  cache.clear();
+}
+
+/**
+ * Prefetch the tier-appropriate brain assets only (B2 · G8-02).
+ * Avoids downloading both full + lite point clouds on the happy path.
+ */
 export function prefetchBrainAssets(): void {
   if (typeof window === "undefined") return;
-  const lite = useLiteBrainPoints();
+  const lite = preferLiteBrainPoints();
   const points = lite ? "brain-points-lite.bin" : "brain-points.bin";
   for (const file of [points, "brain-shell.bin"]) {
     const url = candidateUrls(file)[0];
@@ -92,24 +164,42 @@ export function prefetchBrainAssets(): void {
   }
 }
 
-/** Load pre-baked anatomical cortex point cloud (full or lite). Cached per session. */
-export function loadBrainPoints(): Promise<BrainBuffers> {
-  const key: CacheKey = useLiteBrainPoints() ? "lite" : "full";
-  const existing = cache.get(key);
-  if (existing) return existing;
+export type BrainPointsLoadResult = {
+  buffers: BrainBuffers;
+  source: BrainPointsSource;
+};
 
-  const file = key === "lite" ? "brain-points-lite.bin" : "brain-points.bin";
-  const pending = fetchBrainBin(file).catch(async (err: unknown) => {
-    // Lite missing → fall back to full once
-    if (key === "lite") {
-      console.warn("[loadBrainPoints] lite missing, falling back to full", err);
-      const full = await fetchBrainBin("brain-points.bin");
-      cache.set("full", Promise.resolve(full));
-      return full;
+/**
+ * Load anatomical cortex points with one-step fallback (B4 · G8-06).
+ * Prefer lite on mobile; if primary fails, try the other bin once.
+ */
+export async function loadBrainPoints(): Promise<BrainPointsLoadResult> {
+  // Dev force modes must bypass warm in-memory cache from prior navigations
+  if (getForceBrainMode()) {
+    clearBrainPointsCache();
+  }
+
+  const preferLite = preferLiteBrainPoints();
+  const order: CacheKey[] = preferLite ? ["lite", "full"] : ["full", "lite"];
+  const failures: string[] = [];
+
+  for (const key of order) {
+    try {
+      const buffers = await loadKey(key);
+      if (key !== order[0]) {
+        console.warn(
+          `[loadBrainPoints] primary ${order[0]} unavailable — using ${key}`
+        );
+      }
+      return { buffers, source: key };
+    } catch (err: unknown) {
+      const detail = err instanceof Error ? err.message : String(err);
+      failures.push(`${key}: ${detail}`);
+      console.warn(`[loadBrainPoints] ${key} failed`, err);
     }
-    cache.delete(key);
-    throw err;
-  });
-  cache.set(key, pending);
-  return pending;
+  }
+
+  throw new Error(
+    `Neural field assets unavailable (${failures.join(" | ") || "unknown"})`
+  );
 }

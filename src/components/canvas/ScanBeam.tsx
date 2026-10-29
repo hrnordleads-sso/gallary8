@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { sampleBrainMotion } from "@/lib/brainGeometry";
 import { getBrainLayout } from "@/lib/brainOrigin";
+import { getSceneElapsed } from "@/lib/sceneTime";
 import { getScrollState } from "@/lib/scrollStore";
 
 /**
@@ -18,7 +19,7 @@ export function ScanBeam() {
   const planeMat = useRef<THREE.MeshBasicMaterial>(null);
   const lineMat = useRef<THREE.MeshBasicMaterial>(null);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     const { progress } = getScrollState();
     const { scan, scatter } = sampleBrainMotion(progress);
     if (!group.current || !planeMat.current || !lineMat.current) return;
@@ -35,27 +36,32 @@ export function ScanBeam() {
     let x = 0.55;
     let y = 0.02;
     if (arrival) {
-      z = 0.32 + Math.sin(state.clock.elapsedTime * 0.5) * 0.34;
+      const et = getSceneElapsed();
+      z = 0.32 + Math.sin(et * 0.5) * 0.34;
       x = getBrainLayout().origin.x;
     } else if (cortex) {
       const t = (progress - 0.14) / 0.16;
+      const et = getSceneElapsed();
       z = THREE.MathUtils.lerp(0.55, -0.25, t);
-      y = 0.12 + Math.sin(state.clock.elapsedTime * 1.1) * 0.04;
+      y = 0.12 + Math.sin(et * 1.1) * 0.04;
       x = 0.52;
     } else if (links) {
       const t = (progress - 0.42) / 0.14;
+      const et = getSceneElapsed();
       z = THREE.MathUtils.lerp(0.4, -0.35, t);
-      y = -0.05 + Math.sin(state.clock.elapsedTime * 0.9) * 0.03;
+      y = -0.05 + Math.sin(et * 0.9) * 0.03;
       x = 0.38;
     } else if (vision) {
       const t = (progress - 0.56) / 0.14;
+      const et = getSceneElapsed();
       z = THREE.MathUtils.lerp(0.25, -0.4, t);
-      y = 0.02 + Math.sin(state.clock.elapsedTime * 0.7) * 0.03;
+      y = 0.02 + Math.sin(et * 0.7) * 0.03;
       x = 0.58;
     } else if (balance) {
       const t = (progress - 0.7) / 0.14;
+      const et = getSceneElapsed();
       z = THREE.MathUtils.lerp(0.15, -0.2, t);
-      y = -0.35 + Math.sin(state.clock.elapsedTime * 0.6) * 0.02;
+      y = -0.35 + Math.sin(et * 0.6) * 0.02;
       x = 0.52;
     } else {
       z = THREE.MathUtils.lerp(0.72, -0.72, scan);

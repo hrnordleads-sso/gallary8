@@ -49,15 +49,19 @@ body {
   touch-action: pan-y;
 }
 
-@media (max-width: 639px) {
+/* B1 · G8-01 — darker mobile wash so cyan lattice does not wash out copy */
+@media (max-width: 768px) {
   body {
-    background: radial-gradient(
-      ellipse at 50% 72%,
-      #0e2a4a 0%,
-      #071a32 36%,
-      #010814 70%,
-      #00040c 100%
-    );
+    background:
+      linear-gradient(to bottom, rgba(1, 8, 20, 0.7) 0%, transparent 26%),
+      linear-gradient(to top, rgba(1, 8, 20, 0.76) 0%, transparent 30%),
+      radial-gradient(
+        ellipse at 50% 72%,
+        #0e2a4a 0%,
+        #071a32 36%,
+        #010814 70%,
+        #00040c 100%
+      );
   }
 }
 
@@ -73,6 +77,130 @@ body {
   background:
     linear-gradient(to top, rgba(1, 8, 20, 0.18), transparent 30%),
     linear-gradient(to bottom, rgba(1, 8, 20, 0.08), transparent 18%);
+}
+
+/* B1 · G8-01 — mobile top/bottom scrims + narrative panel contrast (desktop unchanged) */
+@media (max-width: 768px) {
+  .vignette {
+    background:
+      radial-gradient(
+        ellipse 100% 72% at 50% 58%,
+        transparent 16%,
+        rgba(1, 8, 20, 0.66) 100%
+      ),
+      linear-gradient(
+        to bottom,
+        rgba(1, 8, 20, 0.86) 0%,
+        rgba(1, 8, 20, 0.55) 12%,
+        rgba(1, 8, 20, 0.22) 26%,
+        transparent 38%,
+        transparent 58%,
+        rgba(1, 8, 20, 0.52) 78%,
+        rgba(1, 8, 20, 0.88) 100%
+      ),
+      radial-gradient(
+        ellipse 95% 48% at 50% 12%,
+        rgba(1, 8, 20, 0.7) 0%,
+        transparent 74%
+      );
+  }
+
+  .narrative-panel {
+    max-width: min(100%, 22.5rem);
+    margin-top: 0.15rem;
+    padding-top: 0.7rem;
+    padding-bottom: 1.05rem;
+    border-radius: 0.85rem;
+    background: linear-gradient(
+      165deg,
+      rgba(1, 8, 20, 0.92) 0%,
+      rgba(1, 8, 20, 0.78) 42%,
+      rgba(1, 8, 20, 0.55) 100%
+    );
+    box-shadow:
+      0 0 56px 28px rgba(1, 8, 20, 0.72),
+      0 12px 36px rgba(1, 8, 20, 0.55),
+      inset 0 1px 0 rgba(103, 232, 249, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .narrative-eyebrow {
+    color: rgba(165, 243, 252, 0.98);
+    text-shadow: 0 1px 12px rgba(1, 8, 20, 0.95);
+  }
+
+  .narrative-title {
+    color: #ffffff;
+    font-size: clamp(1.7rem, 7.2vw, 2.35rem);
+    line-height: 1.05;
+    text-shadow:
+      0 2px 22px rgba(1, 8, 20, 0.98),
+      0 0 2px rgba(1, 8, 20, 0.9);
+  }
+
+  .narrative-body {
+    color: rgba(226, 236, 248, 0.96);
+    font-size: 13.5px;
+    line-height: 1.55;
+    text-shadow: 0 1px 14px rgba(1, 8, 20, 0.92);
+  }
+
+  .narrative-cta {
+    background: rgba(1, 8, 20, 0.75);
+    border-color: rgba(103, 232, 249, 0.55);
+    box-shadow: 0 0 20px rgba(1, 8, 20, 0.55);
+  }
+
+  .narrative-release,
+  .narrative-log {
+    background: rgba(1, 8, 20, 0.86);
+    border-color: rgba(103, 232, 249, 0.3);
+  }
+
+  .hud-chrome-top {
+    background: linear-gradient(
+      to bottom,
+      rgba(1, 8, 20, 0.9) 0%,
+      rgba(1, 8, 20, 0.48) 62%,
+      transparent 100%
+    );
+    margin: 0;
+    padding-bottom: 0.75rem;
+    text-shadow: 0 1px 10px rgba(1, 8, 20, 0.95);
+  }
+
+  .hud-chrome-bottom {
+    background: linear-gradient(
+      to top,
+      rgba(1, 8, 20, 0.92) 0%,
+      rgba(1, 8, 20, 0.52) 55%,
+      transparent 100%
+    );
+    margin: 0 -0.75rem;
+    padding: 1rem 0.75rem 0.35rem;
+    text-shadow: 0 1px 10px rgba(1, 8, 20, 0.95);
+  }
+}
+
+/* B4 · G8-05 — minimal loader sweep (disabled under prefers-reduced-motion via class) */
+.monitor-loader-bar-fill {
+  animation: monitorLoaderSweep 1.15s ease-in-out infinite;
+}
+
+@keyframes monitorLoaderSweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monitor-loader-bar-fill {
+    animation: none;
+  }
 }
 
 .wave-bar {
@@ -109,7 +237,7 @@ body {
 }
 
 /* P2 · mobile copy stays readable over dense brain / constellation */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .narrative-panel {
     margin-top: 0;
   }

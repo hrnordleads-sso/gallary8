@@ -4,13 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { sampleBrainMotion } from "@/lib/brainGeometry";
+import { enableFineBrainEdges } from "@/lib/deviceProfile";
 import { loadBrainShell } from "@/lib/loadBrainShell";
 import { getScrollState } from "@/lib/scrollStore";
 
+type BrainMeshProps = {
+  reloadToken?: number;
+};
+
 /**
  * Cyan lattice shell — dense fold wires + soft fill (reference wireframe cerebrum).
+ * Shell failure is non-fatal — point cloud can still present the specimen.
  */
-export function BrainMesh() {
+export function BrainMesh({ reloadToken = 0 }: BrainMeshProps) {
   const fillMat = useRef<THREE.MeshBasicMaterial>(null);
   const edgeMat = useRef<THREE.LineBasicMaterial>(null);
   const fineMat = useRef<THREE.LineBasicMaterial>(null);
@@ -23,6 +29,10 @@ export function BrainMesh() {
     let geo: THREE.BufferGeometry | null = null;
     let edgeGeo: THREE.BufferGeometry | null = null;
     let fineGeo: THREE.BufferGeometry | null = null;
+    const wantFine = enableFineBrainEdges();
+    setGeometry(null);
+    setEdges(null);
+    setFineEdges(null);
     loadBrainShell()
       .then((g) => {
         if (cancelled) {
@@ -30,9 +40,11 @@ export function BrainMesh() {
           return;
         }
         geo = g;
-        // Lower thresholds → denser sulcal lattice like the reference mesh
-        edgeGeo = new THREE.EdgesGeometry(g, 14);
-        fineGeo = new THREE.EdgesGeometry(g, 8);
+        // Primary fold wires; fine lattice skipped on mobile (B2 · G8-02)
+        edgeGeo = new THREE.EdgesGeometry(g, wantFine ? 14 : 18);
+        if (wantFine) {
+          fineGeo = new THREE.EdgesGeometry(g, 8);
+        }
         setGeometry(g);
         setEdges(edgeGeo);
         setFineEdges(fineGeo);
@@ -46,7 +58,7 @@ export function BrainMesh() {
       edgeGeo?.dispose();
       fineGeo?.dispose();
     };
-  }, []);
+  }, [reloadToken]);
 
   useFrame((_, delta) => {
     const { progress } = getScrollState();
