@@ -103,33 +103,34 @@ export function SignalThreads() {
       return;
     }
 
-    // Signals: dense traffic · Links: quieter arcs · Release: wide constellation web
+    // Signals: dense traffic · Links: quieter arcs.
+    // Release constellation edge web is desktop-only noise — hide angle lines (ch.7).
     const signalsStrength = Math.max(pulse * 0.95, network * 1.0);
-    const releaseStrength = scatter * 1.05;
     const linksStrength = temporal * 0.45;
-    const strength = Math.max(signalsStrength, linksStrength, releaseStrength);
+    const strength = Math.max(signalsStrength, linksStrength);
+    const hideReleaseWeb = scatter > 0.08;
 
     lineMat.current.opacity = THREE.MathUtils.damp(
       lineMat.current.opacity,
-      strength * (0.2 + scatter * 0.28 + pulse * 0.12),
+      hideReleaseWeb ? 0 : strength * (0.2 + pulse * 0.12),
       5.5,
       delta
     );
     nodeMat.current.opacity = THREE.MathUtils.damp(
       nodeMat.current.opacity,
-      strength * (0.45 + pulse * 0.2 + scatter * 0.15),
+      hideReleaseWeb ? 0 : strength * (0.45 + pulse * 0.2),
       5.5,
       delta
     );
     pulseMat.current.opacity = THREE.MathUtils.damp(
       pulseMat.current.opacity,
-      Math.max(pulse, network * 0.7) * 0.85,
+      hideReleaseWeb ? 0 : Math.max(pulse, network * 0.7) * 0.85,
       6,
       delta
     );
 
-    // Expand into open-field constellation on Release (video wide web)
-    const expand = 1 + network * 0.35 + scatter * 3.4;
+    // Keep web compact on Release — no wide constellation sprawl
+    const expand = 1 + network * 0.35;
     const s = THREE.MathUtils.damp(group.current.scale.x, expand, 3.2, delta);
     group.current.scale.setScalar(s);
 
@@ -162,7 +163,7 @@ export function SignalThreads() {
       attr.needsUpdate = true;
     }
 
-    nodeMat.current.size = 0.028 + pulse * 0.012 + scatter * 0.01;
+    nodeMat.current.size = 0.028 + pulse * 0.012;
   });
 
   return (
