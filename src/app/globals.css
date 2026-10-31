@@ -27,6 +27,8 @@ html {
   scroll-behavior: auto;
   background: var(--navy);
   -webkit-text-size-adjust: 100%;
+  touch-action: pan-y;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -47,6 +49,7 @@ body {
   font-family: var(--font-display), system-ui, sans-serif;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* B1 · G8-01 — darker mobile wash so cyan lattice does not wash out copy */
