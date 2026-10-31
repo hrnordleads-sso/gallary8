@@ -6,6 +6,10 @@ export type BrainLoadState = {
   phase: BrainLoadPhase;
   message: string | null;
   source: "lite" | "full" | null;
+  /** Loaded point count for HUD telemetry (null until ready). */
+  pointCount: number | null;
+  /** False when shell failed but points still present the field. */
+  shellOk: boolean | null;
   attempts: number;
   /** Remount token for Canvas / load effects. */
   reloadToken: number;
@@ -19,6 +23,8 @@ const state: BrainLoadState = {
   phase: "booting",
   message: null,
   source: null,
+  pointCount: null,
+  shellOk: null,
   attempts: 0,
   reloadToken: 0,
 };
@@ -41,6 +47,8 @@ export function setBrainLoadBooting(): void {
   state.phase = "booting";
   state.message = null;
   state.source = null;
+  state.pointCount = null;
+  state.shellOk = null;
   emit();
 }
 
@@ -50,10 +58,15 @@ export function setBrainLoadLoading(): void {
   emit();
 }
 
-export function setBrainLoadReady(source: "lite" | "full"): void {
+export function setBrainLoadReady(
+  source: "lite" | "full",
+  meta?: { pointCount?: number; shellOk?: boolean }
+): void {
   state.phase = "ready";
   state.message = null;
   state.source = source;
+  state.pointCount = meta?.pointCount ?? state.pointCount;
+  state.shellOk = meta?.shellOk ?? true;
   emit();
 }
 
@@ -61,6 +74,8 @@ export function setBrainLoadError(message: string): void {
   state.phase = "error";
   state.message = message;
   state.source = null;
+  state.pointCount = null;
+  state.shellOk = null;
   emit();
 }
 
@@ -81,6 +96,8 @@ export function requestBrainLoadRetry(): boolean {
   state.phase = "loading";
   state.message = null;
   state.source = null;
+  state.pointCount = null;
+  state.shellOk = null;
   state.reloadToken += 1;
   emit();
   return true;

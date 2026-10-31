@@ -6,11 +6,19 @@ import { enablePostFX } from "@/lib/deviceProfile";
 
 /** Cyan mesh bloom — luminous cerebrum without a heavy shadow pocket. */
 export function PostFX() {
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(() =>
+    typeof window !== "undefined" ? enablePostFX() : false
+  );
 
   useEffect(() => {
-    // B2 · G8-02 — skip entire composer on mobile (CSS vignette covers atmosphere)
-    setEnabled(enablePostFX());
+    const sync = () => setEnabled(enablePostFX());
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
   }, []);
 
   if (!enabled) return null;

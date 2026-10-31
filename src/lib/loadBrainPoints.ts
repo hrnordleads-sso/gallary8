@@ -1,6 +1,8 @@
 import type { BrainBuffers } from "@/lib/brainGeometry";
+import { modelCandidateUrls } from "@/lib/assetBasePath";
 import { orientBrainPositions } from "@/lib/brainSpace";
 import { preferLiteBrainPoints } from "@/lib/deviceProfile";
+import { loadBrainShell } from "@/lib/loadBrainShell";
 
 const MAGIC = 0xb17a1001;
 
@@ -8,23 +10,6 @@ export type BrainPointsSource = "lite" | "full";
 
 type CacheKey = BrainPointsSource;
 const cache = new Map<CacheKey, Promise<BrainBuffers>>();
-
-function basePath(): string {
-  const env = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
-  if (env) return env;
-  if (typeof window !== "undefined" && window.location.pathname.startsWith("/gallary8")) {
-    return "/gallary8";
-  }
-  return "";
-}
-
-function candidateUrls(file: string): string[] {
-  const base = basePath();
-  const path = `/models/${file}`;
-  const urls = [`${base}${path}`, path];
-  if (base === "/gallary8") urls.unshift(`/gallary8/models/${file}`);
-  return [...new Set(urls)];
-}
 
 function parseBrainBin(buf: ArrayBuffer): BrainBuffers {
   const view = new DataView(buf);
@@ -105,7 +90,7 @@ async function fetchBrainBin(file: string): Promise<BrainBuffers> {
     }
   }
 
-  const urls = candidateUrls(file);
+  const urls = modelCandidateUrls(file);
   let lastError: unknown = null;
 
   for (const url of urls) {
@@ -148,20 +133,17 @@ export function clearBrainPointsCache(): void {
 }
 
 /**
- * Prefetch the tier-appropriate brain assets only (B2 · G8-02).
- * Avoids downloading both full + lite point clouds on the happy path.
+ * Prefetch via the same in-memory loaders so later loads do not double-fetch.
  */
 export function prefetchBrainAssets(): void {
   if (typeof window === "undefined") return;
   const lite = preferLiteBrainPoints();
-  const points = lite ? "brain-points-lite.bin" : "brain-points.bin";
-  for (const file of [points, "brain-shell.bin"]) {
-    const url = candidateUrls(file)[0];
-    if (!url) continue;
-    void fetch(url, { cache: "force-cache" }).catch(() => {
-      /* prefetch best-effort */
-    });
-  }
+  void loadKey(lite ? "lite" : "full").catch(() => {
+    /* prefetch best-effort */
+  });
+  void loadBrainShell().catch(() => {
+    /* prefetch best-effort */
+  });
 }
 
 export type BrainPointsLoadResult = {

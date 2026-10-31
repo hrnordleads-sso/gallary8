@@ -1,19 +1,10 @@
 import * as THREE from "three";
+import { modelCandidateUrls } from "@/lib/assetBasePath";
 import { orientBrainPositions } from "@/lib/brainSpace";
 
 const MAGIC = 0xb17a1002;
 
 let cache: Promise<THREE.BufferGeometry> | null = null;
-
-function candidateUrls(): string[] {
-  const env = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
-  const path = "/models/brain-shell.bin";
-  const urls = [`${env}${path}`, path];
-  if (typeof window !== "undefined" && window.location.pathname.startsWith("/gallary8")) {
-    urls.unshift("/gallary8/models/brain-shell.bin");
-  }
-  return [...new Set(urls)];
-}
 
 function parseShellBin(buf: ArrayBuffer): THREE.BufferGeometry {
   const view = new DataView(buf);
@@ -43,7 +34,7 @@ export function loadBrainShell(): Promise<THREE.BufferGeometry> {
   if (cache) return cache;
 
   cache = (async () => {
-    const urls = candidateUrls();
+    const urls = modelCandidateUrls("brain-shell.bin");
     let lastError: unknown = null;
     for (const url of urls) {
       try {

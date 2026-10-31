@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CHAPTERS, HUD_METRICS } from "@/lib/narrative";
+import { subscribeBrainLoad } from "@/lib/brainLoadStore";
 import { subscribeScroll } from "@/lib/scrollStore";
 
 /** Global HUD chrome — thin floating telemetry matching Neural Monitor video. */
@@ -9,6 +10,7 @@ export function HUD() {
   const [chapter, setChapter] = useState(0);
   const [coherence, setCoherence] = useState(95.2);
   const [firing, setFiring] = useState(4.21);
+  const [particleLabel, setParticleLabel] = useState<string>(HUD_METRICS.particles);
 
   useEffect(() => {
     return subscribeScroll((state) => {
@@ -25,6 +27,16 @@ export function HUD() {
     });
   }, []);
 
+  useEffect(() => {
+    return subscribeBrainLoad((load) => {
+      if (load.pointCount != null && load.pointCount > 0) {
+        setParticleLabel(`PARTICLES: ${load.pointCount.toLocaleString("en-US")}`);
+      } else {
+        setParticleLabel(HUD_METRICS.particles);
+      }
+    });
+  }, []);
+
   const current = CHAPTERS[chapter] ?? CHAPTERS[0];
   const focus = current.specimen.replace(/\s*·\s*/g, "_").replace(/\s+/g, "_");
 
@@ -35,7 +47,7 @@ export function HUD() {
         <Dot className="hidden min-[400px]:inline" />
         <span className="hidden shrink-0 min-[769px]:inline">{HUD_METRICS.neurons}</span>
         <Dot className="hidden min-[769px]:inline" />
-        <span className="hidden shrink-0 lg:inline">{HUD_METRICS.particles}</span>
+        <span className="hidden shrink-0 lg:inline">{particleLabel}</span>
         <Dot className="hidden lg:inline" />
         <span className="hidden shrink-0 min-[400px]:inline">
           FIRING: {firing.toFixed(2)} M/S

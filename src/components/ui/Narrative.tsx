@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CHAPTERS } from "@/lib/narrative";
 import { chapterFadeOpacity } from "@/lib/chapterFade";
-import { subscribeScroll } from "@/lib/scrollStore";
+import { getScrollState, subscribeScroll } from "@/lib/scrollStore";
 
 export function Narrative() {
   const [chapter, setChapter] = useState(0);
@@ -42,7 +42,8 @@ export function Narrative() {
             : "min-[769px]:ml-[5%]";
 
   const beginAgain = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    const reduced = getScrollState().reducedMotion;
+    window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
   };
 
   // B3 · mobile ≤768: keep all chapter copy in the upper safe band (above brain + HUD).
@@ -64,8 +65,13 @@ export function Narrative() {
 
   return (
     <div
+      id="narrative-main"
+      tabIndex={-1}
       className={`narrative-root pointer-events-none fixed inset-0 z-20 flex ${mobileStack}`}
     >
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {current.eyebrow} {current.title.replace(/\n/g, " ")}
+      </div>
       <div
         className={`narrative-panel mx-auto w-full max-w-[min(22rem,92vw)] transition-[opacity,transform] duration-400 ease-out min-[769px]:mx-0 min-[769px]:max-w-lg lg:max-w-xl ${
           isArrival ? "px-4 min-[769px]:px-5" : "px-5 min-[769px]:px-6"

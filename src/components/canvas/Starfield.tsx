@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { starfieldScale } from "@/lib/deviceProfile";
@@ -13,16 +13,29 @@ const NEAR = 900;
 export function Starfield() {
   const farRef = useRef<THREE.Points>(null);
   const nearRef = useRef<THREE.Points>(null);
+  const [scale, setScale] = useState(() =>
+    typeof window !== "undefined" ? starfieldScale() : 0.18
+  );
 
-  // B2 · density from deviceProfile (captured at mount; Canvas remounts on tier change via parent)
-  const far = useMemo(() => {
-    const s = starfieldScale();
-    return scatter(Math.floor(FAR * s), 8, 36, 0.7);
+  useEffect(() => {
+    const sync = () => setScale(starfieldScale());
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+    };
   }, []);
-  const near = useMemo(() => {
-    const s = starfieldScale();
-    return scatter(Math.floor(NEAR * s), 4, 14, 0.55);
-  }, []);
+
+  const far = useMemo(
+    () => scatter(Math.floor(FAR * scale), 8, 36, 0.7),
+    [scale]
+  );
+  const near = useMemo(
+    () => scatter(Math.floor(NEAR * scale), 4, 14, 0.55),
+    [scale]
+  );
 
   useFrame((_, delta) => {
     const { progress, reducedMotion } = getScrollState();

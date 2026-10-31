@@ -23,27 +23,42 @@ export function BrainMesh({ reloadToken = 0 }: BrainMeshProps) {
   const [geometry, setGeometry] = useState<THREE.BufferGeometry | null>(null);
   const [edges, setEdges] = useState<THREE.BufferGeometry | null>(null);
   const [fineEdges, setFineEdges] = useState<THREE.BufferGeometry | null>(null);
+  const [wantFine, setWantFine] = useState(() =>
+    typeof window !== "undefined" ? enableFineBrainEdges() : false
+  );
+
+  useEffect(() => {
+    const syncFine = () => setWantFine(enableFineBrainEdges());
+    syncFine();
+    window.addEventListener("resize", syncFine);
+    window.addEventListener("orientationchange", syncFine);
+    return () => {
+      window.removeEventListener("resize", syncFine);
+      window.removeEventListener("orientationchange", syncFine);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    let geo: THREE.BufferGeometry | null = null;
-    let edgeGeo: THREE.BufferGeometry | null = null;
-    let fineGeo: THREE.BufferGeometry | null = null;
-    const wantFine = enableFineBrainEdges();
+    /** Local clones / derived geos only — never dispose the shared shell cache. */
+    const owned: THREE.BufferGeometry[] = [];
+
     setGeometry(null);
     setEdges(null);
     setFineEdges(null);
+
     loadBrainShell()
-      .then((g) => {
-        if (cancelled) {
-          g.dispose();
-          return;
-        }
-        geo = g;
-        // Primary fold wires; fine lattice skipped on mobile (B2 · G8-02)
-        edgeGeo = new THREE.EdgesGeometry(g, wantFine ? 14 : 18);
+      .then((cached) => {
+        if (cancelled) return;
+        const g = cached.clone();
+        owned.push(g);
+        // Primary fold wires; fine lattice skipped on constrained / mobile
+        const edgeGeo = new THREE.EdgesGeometry(g, wantFine ? 14 : 18);
+        owned.push(edgeGeo);
+        let fineGeo: THREE.BufferGeometry | null = null;
         if (wantFine) {
           fineGeo = new THREE.EdgesGeometry(g, 8);
+          owned.push(fineGeo);
         }
         setGeometry(g);
         setEdges(edgeGeo);
@@ -52,13 +67,18 @@ export function BrainMesh({ reloadToken = 0 }: BrainMeshProps) {
       .catch((err: unknown) => {
         console.error("[BrainMesh] anatomical shell load failed", err);
       });
+
     return () => {
       cancelled = true;
-      geo?.dispose();
-      edgeGeo?.dispose();
-      fineGeo?.dispose();
+      // Drop React refs first, then dispose after commit so we never draw disposed buffers
+      setGeometry(null);
+      setEdges(null);
+      setFineEdges(null);
+      queueMicrotask(() => {
+        for (const geo of owned) geo.dispose();
+      });
     };
-  }, [reloadToken]);
+  }, [reloadToken, wantFine]);
 
   useFrame((_, delta) => {
     const { progress } = getScrollState();

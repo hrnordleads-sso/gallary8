@@ -82,9 +82,9 @@ export function enablePostFX(): boolean {
   return !isMobilePerfBand() && !isConstrainedClient();
 }
 
-/** Dense secondary EdgesGeometry — expensive; skip on mobile band. */
+/** Dense secondary EdgesGeometry — expensive; align with PostFX / threads gates. */
 export function enableFineBrainEdges(): boolean {
-  return !isMobilePerfBand() && getClientTier() !== "phone";
+  return !isMobilePerfBand() && !isConstrainedClient();
 }
 
 /** Signal thread overlay — desktop / large tablet only. */

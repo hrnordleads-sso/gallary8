@@ -15,7 +15,8 @@ import {
   setBrainLoadReady,
 } from "@/lib/brainLoadStore";
 import { brainKeepRatioForLoaded } from "@/lib/deviceProfile";
-import { loadBrainPoints, prefetchBrainAssets } from "@/lib/loadBrainPoints";
+import { loadBrainPoints } from "@/lib/loadBrainPoints";
+import { loadBrainShell } from "@/lib/loadBrainShell";
 import { getSceneElapsed } from "@/lib/sceneTime";
 import { getScrollIdle, getScrollState } from "@/lib/scrollStore";
 import { BrainMesh } from "./BrainMesh";
@@ -251,11 +252,11 @@ export function BrainCloud({ particleCount = 200000, reloadToken = 0 }: Props) {
   );
 
   useEffect(() => {
-    prefetchBrainAssets();
+    // Prefetch is owned by Experience — share loadKey / shell caches only here
     setBrainLoadLoading();
     let cancelled = false;
     loadBrainPoints()
-      .then(({ buffers: data, source }) => {
+      .then(async ({ buffers: data, source }) => {
         if (cancelled) return;
         // B2/B5 — thin after bin load; full-bin mobile fallback capped ~40k
         const keep = brainKeepRatioForLoaded(source, data.count);
@@ -276,11 +277,19 @@ export function BrainCloud({ particleCount = 200000, reloadToken = 0 }: Props) {
             count: next.count,
           };
         }
+        // Settle shell before declaring ready so loader does not hide a missing wireframe
+        const shellOk = await loadBrainShell()
+          .then(() => true)
+          .catch((shellErr: unknown) => {
+            console.error("[BrainCloud] anatomical shell load failed", shellErr);
+            return false;
+          });
+        if (cancelled) return;
         // Defer geometry swap one frame so first paint stays smooth
         requestAnimationFrame(() => {
           if (cancelled) return;
           setBuffers(next);
-          setBrainLoadReady(source);
+          setBrainLoadReady(source, { pointCount: next.count, shellOk });
         });
       })
       .catch((err: unknown) => {
@@ -299,6 +308,12 @@ export function BrainCloud({ particleCount = 200000, reloadToken = 0 }: Props) {
   }, [particleCount, reloadToken]);
 
   const geometry = useMemo(() => buffersToGeometry(buffers), [buffers]);
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+    };
+  }, [geometry]);
 
   const uniforms = useMemo(
     () => ({

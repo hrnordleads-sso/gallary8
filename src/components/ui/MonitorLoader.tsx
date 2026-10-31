@@ -20,6 +20,8 @@ export function MonitorLoader() {
     phase: "booting",
     message: null,
     source: null,
+    pointCount: null,
+    shellOk: null,
     attempts: 0,
     reloadToken: 0,
   }));

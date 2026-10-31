@@ -20,6 +20,32 @@ import { CameraRig } from "./CameraRig";
 import { PostFX } from "./PostFX";
 import { TimerClockBridge } from "./TimerClockBridge";
 
+function readClientProfile() {
+  const layout = getBrainLayout();
+  if (typeof window === "undefined") {
+    return {
+      dprMax: 1,
+      antialias: false,
+      showThreads: false,
+      mobileLights: true,
+      fov: layout.fov,
+      cam: layout.cameraPos.toArray() as [number, number, number],
+      graphicsKey: "ssr",
+    };
+  }
+  const constrained = isConstrainedClient();
+  const mobile = isMobilePerfBand();
+  return {
+    dprMax: canvasDprMax(),
+    antialias: !constrained && !mobile,
+    showThreads: enableSignalThreads(),
+    mobileLights: mobile || constrained,
+    fov: layout.fov,
+    cam: layout.cameraPos.toArray() as [number, number, number],
+    graphicsKey: `${mobile ? "m" : "d"}-${constrained ? "c" : "f"}-${canvasDprMax()}`,
+  };
+}
+
 function Scene({
   showThreads,
   mobileLights,
@@ -64,30 +90,12 @@ type ExperienceProps = {
 };
 
 export function Experience({ reloadToken = 0 }: ExperienceProps) {
-  const [profile, setProfile] = useState({
-    dprMax: 1.5,
-    antialias: true,
-    showThreads: true,
-    mobileLights: false,
-    fov: 38,
-    cam: [-0.3, 0.08, 3.8] as [number, number, number],
-  });
+  const [profile, setProfile] = useState(readClientProfile);
 
   useEffect(() => {
+    // Prefetch once from Experience; BrainCloud load shares the same caches
     prefetchBrainAssets();
-    const apply = () => {
-      const constrained = isConstrainedClient();
-      const mobile = isMobilePerfBand();
-      const layout = getBrainLayout();
-      setProfile({
-        dprMax: canvasDprMax(),
-        antialias: !constrained && !mobile,
-        showThreads: enableSignalThreads(),
-        mobileLights: mobile || constrained,
-        fov: layout.fov,
-        cam: layout.cameraPos.toArray() as [number, number, number],
-      });
-    };
+    const apply = () => setProfile(readClientProfile());
     apply();
     window.addEventListener("resize", apply);
     window.addEventListener("orientationchange", apply);
@@ -121,6 +129,7 @@ export function Experience({ reloadToken = 0 }: ExperienceProps) {
         <TimerClockBridge />
         <Suspense fallback={null}>
           <Scene
+            key={profile.graphicsKey}
             showThreads={profile.showThreads}
             mobileLights={profile.mobileLights}
             reloadToken={reloadToken}

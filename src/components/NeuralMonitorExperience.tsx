@@ -105,7 +105,7 @@ export function NeuralMonitorExperience() {
       <HUD />
       <ScrollController />
       <a
-        href="#scroll-root"
+        href="#narrative-main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-black focus:px-3 focus:py-2 focus:text-sm focus:text-white"
       >
         Skip to scroll narrative
