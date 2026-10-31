@@ -133,7 +133,7 @@ body {
   .narrative-title {
     color: #ffffff;
     font-size: clamp(1.7rem, 7.2vw, 2.35rem);
-    line-height: 1.05;
+    line-height: 1.1;
     text-shadow:
       0 2px 22px rgba(1, 8, 20, 0.98),
       0 0 2px rgba(1, 8, 20, 0.9);
@@ -141,7 +141,7 @@ body {
 
   .narrative-body {
     color: rgba(226, 236, 248, 0.96);
-    font-size: 13.5px;
+    /* Size comes from Tailwind (14px / min-[769px]:text-base) — avoid fighting utilities */
     line-height: 1.55;
     text-shadow: 0 1px 14px rgba(1, 8, 20, 0.92);
   }
@@ -244,6 +244,44 @@ body {
 
   .narrative-panel h1 {
     letter-spacing: -0.045em;
+  }
+}
+
+/*
+ * Short / mid landscape: fixed panel can exceed the viewport — allow internal
+ * pan so CORTEX/VISION body is not permanently clipped. Threshold 650px covers
+ * 501–560px devices that sat just above the old 500px cut.
+ */
+@media (orientation: landscape) and (max-height: 650px) {
+  .narrative-root {
+    align-items: flex-start !important;
+    /* Clear top HUD chrome (can be ~58px when desktop metrics show) + safe area */
+    padding-top: max(4rem, calc(env(safe-area-inset-top) + 2.75rem)) !important;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+
+  .narrative-panel {
+    max-height: calc(100dvh - 4.75rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    pointer-events: auto;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+  }
+
+  .narrative-panel h1 {
+    font-size: clamp(1.35rem, 4.2vh, 2.1rem);
+    line-height: 1.1;
+  }
+
+  .narrative-body {
+    margin-top: 0.65rem !important;
+    line-height: 1.45;
+  }
+
+  .narrative-eyebrow {
+    margin-bottom: 0.45rem !important;
   }
 }
 

@@ -22,7 +22,7 @@ export function FieldCallouts() {
   if (!callouts?.length) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-[25] hidden font-mono text-[9px] uppercase tracking-[0.28em] text-[#67e8f9]/85 sm:block sm:text-[10px]">
+    <div className="pointer-events-none fixed inset-0 z-[25] hidden font-mono text-[10px] uppercase tracking-[0.22em] text-[#67e8f9]/85 sm:block sm:tracking-[0.24em]">
       {callouts.map((item) => {
         const side = item.side ?? "right";
         const isLeft = side === "left";

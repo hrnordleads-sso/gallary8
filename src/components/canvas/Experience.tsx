@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { AdaptiveDpr, AdaptiveEvents, Preload } from "@react-three/drei";
+import { AdaptiveDpr, Preload } from "@react-three/drei";
 import { Suspense, useEffect, useState } from "react";
 import * as THREE from "three";
 import {
@@ -101,6 +101,8 @@ export function Experience({ reloadToken = 0 }: ExperienceProps) {
     <div className="pointer-events-none fixed inset-0 z-0 touch-none">
       <Canvas
         dpr={[1, profile.dprMax]}
+        // Scroll-driven only — never steal touch/wheel from #scroll-root (iPad Safari).
+        style={{ pointerEvents: "none" }}
         gl={{
           antialias: profile.antialias,
           alpha: false,
@@ -125,7 +127,6 @@ export function Experience({ reloadToken = 0 }: ExperienceProps) {
           />
         </Suspense>
         <AdaptiveDpr pixelated />
-        <AdaptiveEvents />
       </Canvas>
       <div className="vignette pointer-events-none absolute inset-0" />
     </div>

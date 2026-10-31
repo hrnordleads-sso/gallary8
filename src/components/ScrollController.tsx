@@ -30,15 +30,34 @@ export function ScrollController() {
 
     setScrollProgress(0, CHAPTERS.length);
 
-    const onResize = () => {
-      ScrollTrigger.refresh();
+    let refreshTimer = 0;
+    const scheduleRefresh = () => {
+      window.clearTimeout(refreshTimer);
+      refreshTimer = window.setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 120);
     };
-    window.addEventListener("resize", onResize);
+
+    window.addEventListener("resize", scheduleRefresh);
+    window.addEventListener("orientationchange", scheduleRefresh);
+
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", scheduleRefresh);
+      vv.addEventListener("scroll", scheduleRefresh);
+    }
+
     const settle = window.setTimeout(() => ScrollTrigger.refresh(), 120);
 
     return () => {
       window.clearTimeout(settle);
-      window.removeEventListener("resize", onResize);
+      window.clearTimeout(refreshTimer);
+      window.removeEventListener("resize", scheduleRefresh);
+      window.removeEventListener("orientationchange", scheduleRefresh);
+      if (vv) {
+        vv.removeEventListener("resize", scheduleRefresh);
+        vv.removeEventListener("scroll", scheduleRefresh);
+      }
       media.removeEventListener("change", applyMotion);
       trigger.kill();
     };
